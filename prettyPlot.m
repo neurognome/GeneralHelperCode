@@ -1,4 +1,4 @@
-function h = prettyPlot(h)
+function prettyPlot(h)
 % Written 18Jul2019 KS
 
 % A quick function just to make plots the way I like them for publications. Saves some work in illustrator
