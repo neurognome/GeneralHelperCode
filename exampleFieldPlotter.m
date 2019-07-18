@@ -8,6 +8,7 @@ function exampleFieldPlotter()
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Setting everything up
+gain = 1.5; % This gain value helps to bring the cells out more... if you can't really see your cells, adjust this.
 
 % Choosing data file, could add later an input data file
 fprintf('Choose your data file... \n')
@@ -55,6 +56,10 @@ end
 %% Setting up the maps for display
 transparency_map = rescale(activity_map); % First bringing everything to [0,1]
 transparency_map(transparency_map <= prctile(transparency_map(:),80)) = 0; % Floor lower values to avoid color cast, non-cells affected only        
+
+transparency_map = transparency_map * gain;
+transparency_map(transparency_map > 1) = 0.90; % keep a little transparency regardless, so it doesn't block out the avg_projection
+
 
 %% Display the plots
 
