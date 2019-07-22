@@ -11,5 +11,5 @@ end
 
 set(h,'box','off');
 set(h,'TickDir','out');
-set(h,'LineWidth',2);
+set(h,'LineWidth',0.5);
 set(h,'FontName','Arial');
