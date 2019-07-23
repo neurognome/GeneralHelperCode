@@ -1,4 +1,4 @@
-function [TForm,RFixed] = A_transformationCreator(VFS_raw)
+function [TForm,Rfixed] = A_transformationCreator(VFS_raw)
 
 %-------------------------------------------------------------------------%
 % Step 1/2: Creates the transformation parameters
