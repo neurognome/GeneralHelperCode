@@ -1,13 +1,20 @@
 classdef confidenceBandPlot < handle
-%-------------------------------------------------------------------------%
-% First attempt at OOP to create confidence band plots, with easy change-
-% ability of the stuff. The code lets you specific any number of properties
-% as you'd like, but you don't have to do all of em. 
-% 
-% Written 24Jul2019 KS
-% Updated
-%-------------------------------------------------------------------------%
-
+    %-------------------------------------------------------------------------%
+    % Lets you plot confidence band plots over a scatter plot
+    % Usage: confidenceBandPlot(IV,DV,'Name',value);
+    %
+    % Possible name-value pairs     Default values          Description
+    % ScatterColor              = [0.7 0.7 0.7]         Color of the dots for the scatter plot
+    % RegressionLineColor       = [1 1 1]               Color of the regression line 
+    % ConfidenceBandColor       = [1 0 0]               Color of the confidence band
+    % RegressionLineThickness   = 2                     Line thickness of the regression line
+    % ConfidenceInterval        = 0.95                  What CI to show in the band
+    % ConfidenceBandAlpha       = 0.5                   Band transparency
+    %
+    % Written 24Jul2019 KS
+    % Updated
+    %-------------------------------------------------------------------------%
+    
     properties (Access = private)
         ScatterPlot                 % scatter plot of the raw data
         RegressionLine              % regression line on top
@@ -23,7 +30,6 @@ classdef confidenceBandPlot < handle
         ConfidenceBandAlpha         % Transparency of the confidence band
     end
     
-    
     methods
         function obj = confidenceBandPlot(IV,DV,varargin)
             % Make sure both are column vectors
@@ -38,7 +44,7 @@ classdef confidenceBandPlot < handle
             % Parse the input arguments, in case you supply some, and apply as necessary. The rest are defaulted
             args = obj.checkInputs(IV,DV,varargin{:});
             hold on
-             
+            
             % Calculate both the confidence band and sampled X and Y values for the regression line
             [X,Y,Y_top,Y_bot] = obj.calculateConfidenceBand(IV,DV,args.ConfidenceInterval);
             
@@ -160,7 +166,7 @@ classdef confidenceBandPlot < handle
         end
         
         % This calculates the confidence band, I think somethign's wrong here...
-        function [X,Y,Y_top,Y_bot] = calculateConfidenceBand(obj,x,y,alpha)
+        function [X,Y,Y_top,Y_bot] = calculateConfidenceBand(obj,x,y,ci)
             N = length(x);
             x_min = min(x);
             x_max = max(x);
@@ -171,14 +177,14 @@ classdef confidenceBandPlot < handle
             beta = fliplr(polyfit(x,y,1));
             
             
-            X = x_min:(x_max-x_min)/n_pts:x_max; % Essentially binning,
-            Y = ones(size(X))*beta(1) + beta(2)*X;
+            X = x_min:(x_max-x_min)/n_pts:x_max; % subsampling the population
+            Y = ones(size(X))*beta(1) + beta(2)*X; % Calculating y values based on fit...
             
-            SE_y_cond_x = sum((y - beta(1)*ones(size(y))-beta(2)*x).^2)/(N-2);
+            SE_y_cond_x = sqrt(sum((y - (beta(1)*ones(size(y)) + beta(2)*x)).^2)./N);
             SSX = (N-1)*var(x);
             SE_Y = SE_y_cond_x*(ones(size(X))*(1/N + (mean(x)^2)/SSX) + (X.^2 - 2*mean(x)*X)/SSX);
             
-            Yoff = (2*finv(1-alpha,2,N-2)*SE_Y).^0.5;
+            Yoff = (2*finv(1-ci,2,N-2)*SE_Y).^0.5;
             
             
             % SE_b0 = SE_y_cond_x*sum(x.^2)/(N*SSX)
@@ -187,7 +193,7 @@ classdef confidenceBandPlot < handle
             Y_top = Y + Yoff;
             Y_bot = Y - Yoff;
             
-        end 
+        end
     end
 end
 
