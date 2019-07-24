@@ -1,19 +1,19 @@
 classdef confidenceBandPlot < handle
-    %-------------------------------------------------------------------------%
-    % Lets you plot confidence band plots over a scatter plot
-    % Usage: confidenceBandPlot(IV,DV,'Name',value);
-    %
-    % Possible name-value pairs     Default values          Description
-    % ScatterColor              = [0.7 0.7 0.7]         Color of the dots for the scatter plot
-    % RegressionLineColor       = [1 1 1]               Color of the regression line 
-    % ConfidenceBandColor       = [1 0 0]               Color of the confidence band
-    % RegressionLineThickness   = 2                     Line thickness of the regression line
-    % ConfidenceInterval        = 0.95                  What CI to show in the band
-    % ConfidenceBandAlpha       = 0.5                   Band transparency
-    %
-    % Written 24Jul2019 KS
-    % Updated
-    %-------------------------------------------------------------------------%
+%--------------------------------------------------------------------------
+% Lets you plot confidence band plots over a scatter plot
+% Usage: confidenceBandPlot(IV,DV,'Name',value);
+%
+% Possible name-value pairs     Default values          Description
+% ScatterColor              = [0.7 0.7 0.7]         Color of the dots for the scatter plot
+% RegressionLineColor       = [1 1 1]               Color of the regression line 
+% ConfidenceBandColor       = [1 0 0]               Color of the confidence band
+% RegressionLineThickness   = 2                     Line thickness of the regression line
+% ConfidenceInterval        = 0.95                  What CI to show in the band
+% ConfidenceBandAlpha       = 0.5                   Band transparency
+%
+% Written 24Jul2019 KS
+% Updated
+%--------------------------------------------------------------------------
     
     properties (Access = private)
         ScatterPlot                 % scatter plot of the raw data
@@ -33,13 +33,9 @@ classdef confidenceBandPlot < handle
     methods
         function obj = confidenceBandPlot(IV,DV,varargin)
             % Make sure both are column vectors
-            if size(IV,2) ~= 1
-                IV = IV';
-            end
             
-            if size(DV,2) ~= 1
-                DV = DV';
-            end
+            IV = obj.columnVectorMaker(IV);
+            DV = obj.columnVectorMaker(DV);
             
             % Parse the input arguments, in case you supply some, and apply as necessary. The rest are defaulted
             args = obj.checkInputs(IV,DV,varargin{:});
@@ -69,7 +65,6 @@ classdef confidenceBandPlot < handle
             obj.RegressionLineThickness = args.RegressionLineThickness;
             
             hold off % for future plotting
-            
         end
         
         % Bunch of getters and setters... These allow me to access these values outside of the function, ie it lets me change it from the command window if I want
@@ -192,7 +187,13 @@ classdef confidenceBandPlot < handle
             
             Y_top = Y + Yoff;
             Y_bot = Y - Yoff;
-            
+        end
+        
+        function vec = columnVectorMaker(obj,vec)
+            [nrow,ncol] = size(vec);
+            if nrow > ncol
+                vec = vec';
+            end
         end
     end
 end
