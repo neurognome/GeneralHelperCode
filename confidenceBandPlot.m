@@ -33,9 +33,13 @@ classdef confidenceBandPlot < handle
         RegressionLineColor         % Color of the regression line
         ConfidenceBandColor         % Color of the confidence band
         RegressionLineThickness     % Thickness of the Regression line
-        ConfidenceInterval          % What CI to represent [0,1];
         ConfidenceBandAlpha         % Transparency of the confidence band
+        
+    end
+    
+    properties (SetAccess = protected)
         NumBootstrapSamples         % Number of samples for the bootstrap
+        ConfidenceInterval          % What CI to represent [0,1];
     end
     
     methods
@@ -72,6 +76,9 @@ classdef confidenceBandPlot < handle
             obj.ConfidenceBandAlpha     = args.ConfidenceBandAlpha;
             obj.RegressionLineThickness = args.RegressionLineThickness;
             
+            % Just for your own reference
+            obj.NumBootstrapSamples     = args.NumBootstrapSamples;
+            obj.ConfidenceInterval      = args.ConfidenceInterval;
             
             hold off % for future plotting
         end
@@ -138,15 +145,6 @@ classdef confidenceBandPlot < handle
             end
         end
         
-        function ci = get.ConfidenceInterval(obj)
-            ci = obj.ConfidenceInterval;
-        end
-        
-        function set.ConfidenceInterval(obj,ci)
-            obj.ConfidenceInterval = ci;
-        end
-        
-        
     end
     
     methods (Access = private)
@@ -167,14 +165,14 @@ classdef confidenceBandPlot < handle
             
             p.parse(IV,DV,varargin{:});
             results = p.Results;
-        end      
+        end
         
         function [X,Y,Y_top,Y_bot] = calculateConfidenceBand(obj,x,y,ci,numIterations)
             x_min = min(x);
-            x_max = max(x);            
+            x_max = max(x);
             n_pts = 100;
             
-            X = x_min:(x_max-x_min)/n_pts:x_max; % subsampling the population      
+            X = x_min:(x_max-x_min)/n_pts:x_max; % subsampling the population
             beta = polyfit(x,y,1);
             Y = ones(size(X))*beta(2) + beta(1)*X; % Calculating y values based on fit...
             
@@ -198,5 +196,6 @@ classdef confidenceBandPlot < handle
             end
         end
     end
+    
 end
 
