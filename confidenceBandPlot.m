@@ -1,19 +1,26 @@
 classdef confidenceBandPlot < handle
-%--------------------------------------------------------------------------
-% Lets you plot confidence band plots over a scatter plot
-% Usage: confidenceBandPlot(IV,DV,'Name',value);
-%
-% Possible name-value pairs     Default values          Description
-% ScatterColor              = [0.7 0.7 0.7]         Color of the dots for the scatter plot
-% RegressionLineColor       = [1 1 1]               Color of the regression line 
-% ConfidenceBandColor       = [1 0 0]               Color of the confidence band
-% RegressionLineThickness   = 2                     Line thickness of the regression line
-% ConfidenceInterval        = 0.95                  What CI to show in the band
-% ConfidenceBandAlpha       = 0.5                   Band transparency
-%
-% Written 24Jul2019 KS
-% Updated
-%--------------------------------------------------------------------------
+    %--------------------------------------------------------------------------
+    % Lets you plot confidence band plots over a scatter plot
+    %
+    % Usage: confidenceBandPlot(IV,DV,'Name',value);
+    %
+    % Possible name-value pairs     Default values          Description
+    % ScatterColor              = [0.7 0.7 0.7]         Color of the dots for the scatter plot
+    % RegressionLineColor       = [1 1 1]               Color of the regression line
+    % ConfidenceBandColor       = [1 0 0]               Color of the confidence band
+    % RegressionLineThickness   = 2                     Line thickness of the regression line
+    % ConfidenceInterval        = 0.95                  What CI to show in the band
+    % ConfidenceBandAlpha       = 0.5                   Band transparency
+    % NumBootstrapSamples       = 1000                  Number of samples for bootstrapping the error
+    %
+    %
+    % Additional Info: The confidence band bounds are calculated by bootstrapping
+    % the population NumBootstrapSamples times and then taking the 95th and 5th
+    % percentile of that distribution at each data point to create a smooth curve
+    %
+    % Written 24Jul2019 KS
+    % Updated
+    %--------------------------------------------------------------------------
     
     properties (Access = private)
         ScatterPlot                 % scatter plot of the raw data
@@ -28,6 +35,7 @@ classdef confidenceBandPlot < handle
         RegressionLineThickness     % Thickness of the Regression line
         ConfidenceInterval          % What CI to represent [0,1];
         ConfidenceBandAlpha         % Transparency of the confidence band
+        NumBootstrapSamples         % Number of samples for the bootstrap
     end
     
     methods
@@ -42,7 +50,7 @@ classdef confidenceBandPlot < handle
             hold on
             
             % Calculate both the confidence band and sampled X and Y values for the regression line
-            [X,Y,Y_top,Y_bot] = obj.calculateConfidenceBand(IV,DV,args.ConfidenceInterval);
+            [X,Y,Y_top,Y_bot] = obj.calculateConfidenceBand(IV,DV,args.ConfidenceInterval,args.NumBootstrapSamples);
             
             % Plotting everything
             % scatterplot, with filled circles
@@ -57,18 +65,18 @@ classdef confidenceBandPlot < handle
             obj.RegressionLine = ...
                 plot(X,Y);
             
-            % Set all the colors and stuff so we can see it.
+            % Set all the colors and linestyles to make it look pretty
             obj.ScatterColor            = args.ScatterColor;
             obj.RegressionLineColor     = args.RegressionLineColor;
             obj.ConfidenceBandColor     = args.ConfidenceBandColor;
             obj.ConfidenceBandAlpha     = args.ConfidenceBandAlpha;
             obj.RegressionLineThickness = args.RegressionLineThickness;
             
+            
             hold off % for future plotting
         end
         
-        % Bunch of getters and setters... These allow me to access these values outside of the function, ie it lets me change it from the command window if I want
-        
+        % Bunch of getters and setters... These allow me to access these dependent values outside of the function, ie it lets me change it from the command window if I want
         function set.ScatterColor(obj,color)
             if ~isempty(obj.ScatterPlot)
                 obj.ScatterPlot.MarkerFaceColor = color;
@@ -155,38 +163,32 @@ classdef confidenceBandPlot < handle
             p.addParameter('ConfidenceBandColor',[1 0.7 0.7],iscolor);
             p.addParameter('ConfidenceBandAlpha',0.5,isscalarnumber);
             p.addParameter('ConfidenceInterval',0.95,isscalarnumber);
+            p.addParameter('NumBootstrapSamples',500,isscalarnumber);
             
             p.parse(IV,DV,varargin{:});
             results = p.Results;
-        end
+        end      
         
-        % This calculates the confidence band, I think somethign's wrong here...
-        function [X,Y,Y_top,Y_bot] = calculateConfidenceBand(obj,x,y,ci)
-            N = length(x);
+        function [X,Y,Y_top,Y_bot] = calculateConfidenceBand(obj,x,y,ci,numIterations)
             x_min = min(x);
-            x_max = max(x);
-            
+            x_max = max(x);            
             n_pts = 100;
             
-            % calculate the necessary parameters...
-            beta = fliplr(polyfit(x,y,1));
+            X = x_min:(x_max-x_min)/n_pts:x_max; % subsampling the population      
+            beta = polyfit(x,y,1);
+            Y = ones(size(X))*beta(2) + beta(1)*X; % Calculating y values based on fit...
             
+            % Bootstrapping the confidence band
+            for s = 1:numIterations
+                [x_sample,idx] = datasample(x,length(x)-1);
+                y_sample = y(idx);
+                beta_samp = polyfit(x_sample,y_sample,1);
+                Y_samp(s,:) = ones(size(X))*beta_samp(2) + beta_samp(1)*X; % Calculating y values based on fit...
+            end
             
-            X = x_min:(x_max-x_min)/n_pts:x_max; % subsampling the population
-            Y = ones(size(X))*beta(1) + beta(2)*X; % Calculating y values based on fit...
-            
-            SE_y_cond_x = sqrt(sum((y - (beta(1)*ones(size(y)) + beta(2)*x)).^2)./N);
-            SSX = (N-1)*var(x);
-            SE_Y = SE_y_cond_x*(ones(size(X))*(1/N + (mean(x)^2)/SSX) + (X.^2 - 2*mean(x)*X)/SSX);
-            
-            Yoff = (2*finv(1-ci,2,N-2)*SE_Y).^0.5;
-            
-            
-            % SE_b0 = SE_y_cond_x*sum(x.^2)/(N*SSX)
-            % sqrt(SE_b0)
-            
-            Y_top = Y + Yoff;
-            Y_bot = Y - Yoff;
+            % Taking the 5% and 95% as the top and bottom of the confidence band
+            Y_top = prctile(Y_samp,ci*100);
+            Y_bot = prctile(Y_samp,(1-ci)*100);
         end
         
         function vec = columnVectorMaker(obj,vec)
