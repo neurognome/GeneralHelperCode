@@ -18,29 +18,31 @@ classdef dataObject < dynamicprops
     
     methods
         function obj = dataObject(varargin)
-            
+            if nargin == 0
+            else
             for ii = 1:nargin % Loops through the input arguments
                 try
-                    evalin('caller',varargin{ii})
+                    evalin('caller',[varargin{ii} ';']);
                     p(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
-                    obj.(varargin{ii}) = evalin('caller',varargin{ii}); % Fills in those properties with the values
+                    obj.(varargin{ii}) = evalin('caller',[varargin{ii} ';']); % Fills in those properties with the values
                 catch
-                    obj.msgPrinter(sprintf('Variable %s doesn''t exist, skipping...\n',varargin{ii}));
+                    obj.msgPrinter(sprintf('Variable doesn''t exist: %s\n',varargin{ii}));
                 end
                 
             end
             
             obj.dynamicproperties = p; % here we assign the private dynamicproperties property, mainly for controlling these data
+            end
         end
         
         function addData(obj,varargin) % In order to add more data to our object
             for ii = 1:nargin-1 % because there will always be "obj" there
                 try
                     p(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
-                    obj.(varargin{ii}) = evalin('caller',varargin{ii}); % Fills in those properties with the values
+                    obj.(varargin{ii}) = evalin('caller',[varargin{ii} ';']); % Fills in those properties with the values
                     obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
                 catch
-                    obj.msgPrinter(sprintf('%s is already a property, skipped...\n',varargin{ii}))
+                    obj.msgPrinter(sprintf('Already a property: %s\n',varargin{ii}))
                 end
             end
         end
@@ -63,7 +65,7 @@ classdef dataObject < dynamicprops
         
         function exportData(obj,varargin) % To output stored variables into the workspace
             
-            obj.msgPrinter('Not recommended (uses assignin), better to access the properties directly...\n')
+           % obj.msgPrinter('Not recommended (uses assignin), better to access the properties directly...\n')
             props = properties(obj);
             
             if nargin < 2
