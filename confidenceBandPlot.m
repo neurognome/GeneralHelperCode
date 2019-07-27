@@ -63,7 +63,7 @@ classdef confidenceBandPlot < handle
             
             % confidence bounds, no edges. requires a color argument
             obj.ConfidenceBand = ...
-                fill([X , fliplr(X)],[Y_bot , fliplr(Y_top)],args.ConfidenceBandColor,'EdgeColor','none');
+                fill([X , fliplr(X)],[Y_bot , fliplr(Y_top)], args.ConfidenceBandColor,'EdgeColor','none');
             
             % plot subsampled regression line
             obj.RegressionLine = ...
