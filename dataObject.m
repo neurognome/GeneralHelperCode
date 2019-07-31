@@ -10,6 +10,8 @@ classdef dataObject < dynamicprops
     % Written 26Jul2019 KS
     % Updated 27Jul2019 KS Better handling of inputs and refactored
     %                      message printer
+    %         31Jul2019 KS Added functionality for variable input types and
+    %                      new output options
     % -------------------------------------------------------------------------%
     
     properties (Access = protected)
