@@ -13,11 +13,11 @@ classdef DataObject < dynamicprops
     %         31Jul2019 KS Added functionality for variable input types and
     %                      new output options
     % -------------------------------------------------------------------------%
-
+    
     properties (Access = protected)
         dynamicproperties
     end
-
+    
     methods
         function obj = DataObject(varargin)
             if nargin == 0
@@ -35,28 +35,30 @@ classdef DataObject < dynamicprops
                 obj.dynamicproperties = p; % here we assign the private dynamicproperties property, mainly for controlling these data
             end
         end
-%---------------- Manipulating Stored Data -------------------------------%
+        
+        %---------------- Manipulating Stored Data -------------------------------%
         function addData(obj,varargin) % In order to add more data to our object
             try
                 for ii = 1:nargin-1 % because there will always be "obj" there
                     if ischar(varargin{ii})
                         p(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
                         obj.(varargin{ii}) = evalin('caller',[varargin{ii} ';']); % Fills in those properties with the values
-                        obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
                     else
                         p(ii) = obj.addprop(inputname(ii+1));
                         obj.(inputname(ii+1)) = varargin{ii};
                     end
+                    obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
+                    
                 end
             catch ME
                 if strcmp(ME.identifier,'MATLAB:class:PropertyInUse')
-                    obj.msgPrinter('Property already exists');
+                    obj.msgPrinter('Property already exists \n');
                 else
-                    obj.msgPrinter('Unknown error, data not added');
+                    obj.msgPrinter('Unknown error, data not added \n');
                 end
             end
         end
-
+        
         function deleteData(obj,varargin) % Getting rid of individual fields of data
             try
                 dynamic_property_list = {obj.dynamicproperties.Name}; % Find the properties you want to get rid of
@@ -67,11 +69,31 @@ classdef DataObject < dynamicprops
                 obj.msgPrinter('Something went wrong, properties not deleted \n')
             end
         end
+        
         function clearAllData(obj) % For clearing your entire data object, starting from scratch
             delete(obj.dynamicproperties);
             obj.dynamicproperties = [];
         end
-%----------------- Exporting Stored Data ---------------------------------%
+        
+        function importStruct(obj,S)
+            props = properties(obj);
+            fields = fieldnames(S);
+            for ii = 1:length(fields)      
+                
+                if ismember(fields{ii},props)
+                    fieldname = strcat(fields{ii}, '_', inputname(2));
+                    obj.msgPrinter(sprintf('Renamed field: %s -> %s\n',fields{ii},fieldname));
+                else
+                    fieldname = fields{ii};
+                end   
+                
+                p(ii) = obj.addprop(fieldname);
+                obj.(fieldname) = S.(fields{ii});
+                obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
+            end
+        end
+        
+        %----------------- Exporting Stored Data ---------------------------------%
         function varargout = exportData(obj,varargin) % Generally recommended, outputs to struct
             props = properties(obj);
             if nargin < 2 % create the structure based on queried input variables
@@ -93,11 +115,11 @@ classdef DataObject < dynamicprops
                 assignin('caller',sprintf('%s_export',inputname(1)),out);
             end
         end
-
+        
         function exportToVar(obj,varargin) % Generally not recommended, use exportData instead
             % obj.msgPrinter('Not recommended (uses assignin), better to access the properties directly...\n')
             props = properties(obj);
-
+            
             if nargin < 2
                 for ii = 1:size(props,1)
                     assignin('caller',props{ii},obj.(props{ii})); % not sure if base or caller better, we'll see...
@@ -109,12 +131,12 @@ classdef DataObject < dynamicprops
                         assignin('caller',props{ii},obj.(props{ii})); % not sure if base or caller better, we'll see...
                     end
                 end
-
+                
             end
         end
     end
-
-
+    
+    
     methods (Access = private)
         function msgPrinter(obj,str)
             fprintf(str);
