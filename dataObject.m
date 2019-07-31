@@ -1,4 +1,4 @@
-classdef dataObject < dynamicprops
+classdef DataObject < dynamicprops
     % -------------------------------------------------------------------------%
     % Special object used to store data and pass it around. It first takes
     % whatever data you want to pass in as an input, but you can also add or
@@ -19,7 +19,7 @@ classdef dataObject < dynamicprops
     end
     
     methods
-        function obj = dataObject(varargin)
+        function obj = DataObject(varargin)
             if nargin == 0
             else
                 for ii = 1:nargin % Loops through the input arguments
