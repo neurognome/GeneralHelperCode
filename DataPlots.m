@@ -1,42 +1,46 @@
 classdef DataPlots < handle
-%-------------------------------------------------------------------------%
-% A big class that handles all the visualization and plotting of various 
-% data types. Create the object, then set your data. Call from any of the
-% predefined plots, and pass Name-Value pairs via setPlotProps.
-% 
-% Currently supported plots:
-% 
-% polarPlot             Standard polar plots for circular data
-% linePlot              Standard line plot... for... everything
-% confidenceBandPlot    Scatter plot with overlaid regression line with a 
-%                       error band around it (Needs the confidenceBandPlot
-%                       class)
-%
-% Written 01Aug2019 KS
-% Updated 
-% ------------------------------------------------------------------------%
-
-%% Skeleton code 
-% % To add your own plots, copy this skeleton code
-% % Initializing and preparing for plotting
-%   [c,args] = obj.initialize(#,varargin{:}); %  # = number of input arguments to your main plot
-%             
-% % Calculation of data necessary from the raw data
-%     obj.data.data# % retrieve data from the DataObject
-%     
-% % Plot the data
-%    h = whateverplotyouneed(obj.data.data#)
-% 
-% % Get the handles for changing values
-%    obj.plotHandles(1) = DataObject('h');
-%             
-% % Setting the plot styles
-%    obj.setPlotProps(1,'LineWidth',2); % Set defaults    
-% % User-defined look
-%    obj.setPlotProps(args); % Pass in name-value pairs
-%%
-properties (Access = protected)
+    %-------------------------------------------------------------------------%
+    % A big class that handles all the visualization and plotting of various
+    % data types. Create the object, then set your data. Call from any of the
+    % predefined plots, and pass Name-Value pairs via setPlotProps.
+    %
+    % Currently supported plots:
+    % Name                  Descrip.                                            Num Datasets    Data formats
+    % polarPlot             Standard polar plots for circular data              1               m x n arrays
+    % linePlot              Standard line plot... for... everything             1               m x n arrays
+    % confidenceBandPlot    Scatter plot with overlaid regression line with a   2               1 x n arrays
+    %                       error band around it (Needs the confidenceBandPlot
+    %                       class)
+    % boxPlot               Box plot for comparing medians                      1               1 x n cell array
+    %
+    % Written 01Aug2019 KS
+    % Updated
+    % ------------------------------------------------------------------------%
+    
+    %% To add your own plots, copy this skeleton code
+    % % Initializing and preparing for plotting
+    %   [c, varargin] = obj.getCell(varargin{:}); % This line is only necessary if you give single cell data
+    %   [args] = obj.initializeArgs(#,varargin{:}); %  # = number of input arguments to your main plot
+    %
+    % % Calculation of data necessary from the raw data
+    %     obj.data.data# % retrieve data from the DataObject
+    %
+    % % Plot the data
+    %    h = whateverplotyouneed(obj.data.data#)
+    %
+    % % Get the handles for changing values
+    %    obj.plotHandles(1) = DataObject('h');
+    %
+    % % Setting the plot styles
+    %    obj.setProps(1,'LineWidth',2); % Set defaults
+    % % User-defined look
+    %    obj.setProps(args); % Pass in name-value pairs
+    %%
+    properties
         data
+    end
+
+    properties (Access = protected)
         plotHandles
     end
     
@@ -47,7 +51,7 @@ properties (Access = protected)
             obj.plotHandles = DataObject();
         end
         
-        function obj = setPlotData(obj,varargin) % varargin because sometimes you need 2 datasets (eg scatter plots)
+        function obj = setData(obj,varargin) % varargin because sometimes you need 2 datasets (eg scatter plots)
             obj.data.reset(); % Get rid of old data from previous plot
             temp = struct(); % Temporarly assign to a structure so it goes into the DataObject easier
             for ii = 1:length(varargin)
@@ -60,7 +64,7 @@ properties (Access = protected)
             obj.data.importStruct(temp); % Absorb the structure
         end
         
-        function obj = setPlotProps(obj,varargin) % Used to pass name-value pairs into the plot
+        function obj = setProps(obj,varargin) % Used to pass name-value pairs into the plot
             [h,args] = obj.checkPlotProps(varargin{:});
             
             % Setting the properties
@@ -74,7 +78,8 @@ properties (Access = protected)
         %----------------------Plots--------------------------%
         function polarPlot(obj,varargin) % As an example, there's there parts to this
             % Initializing and preparing for plotting
-            [c,args] = obj.initialize(1,varargin{:});
+            [c,varargin] = obj.getCell(varargin{:});
+            args = obj.initializeArgs(1,varargin{:});
             
             % Calculation of data necessary from the raw data
             rho = obj.data.data1(c,:);
@@ -92,29 +97,32 @@ properties (Access = protected)
             
             % Setting the plot styles
             % Default look
-            obj.setPlotProps(1,'LineWidth',2);
-            obj.setPlotProps(2,'ThetaZeroLocation','top','ThetaDir','clockwise');
+            obj.setProps(1,'LineWidth',2);
+            obj.setProps(2,'ThetaZeroLocation','top','ThetaDir','clockwise');
             
             % User-defined look
-            obj.setPlotProps(args);
+            obj.setProps(args);
         end
         
         function linePlot(obj,varargin)
-            [c,args] = obj.initialize(1,varargin{:});
+            [c,varargin] = obj.getCell(varargin{:});
+            args = obj.initializeArgs(1,varargin{:});
             
             line = plot(obj.data.data1(c,:));
-            
+            ax   = gca;
             obj.plotHandles(1) = DataObject('line');
-            obj.setPlotProps(1,'LineWidth',2);
-            obj.setPlotProps(args);
+            obj.plotHandles(2) = DataObject('ax');
+            
+            obj.setProps(1,'LineWidth',2);
+            obj.setProps(args);
         end
         
         function confidenceBandPlot(obj,varargin)
             % Initializing and preparing for plotting
-            [c,args] = obj.initialize(2,varargin{:}); 
+            args = obj.initializeArgs(2,varargin{:});
             
             % Calculation of data necessary from the raw data
-
+            
             % Plot the data
             cb_plot = confidenceBandPlot(obj.data.data1,obj.data.data2);
             
@@ -122,11 +130,53 @@ properties (Access = protected)
             obj.plotHandles(1) = DataObject('cb_plot');
             
             % Setting the plot styles
-            obj.setPlotProps(args); % Pass in name-value pairs
+            obj.setProps(args); % Pass in name-value pairs
+        end
+        
+        function boxPlot(obj,varargin)
+            % Initializing and preparing for plotting
+            args = obj.initializeArgs(1,varargin{:});
+            
+            if ~isempty(fields(args))
+                fprintf('Warning, boxplots are annoying, can''t change properties...\n')
+            end
+            
+            % Calculation of data necessary from the raw data
+            if size(obj.data.data1{1},1) < size(obj.data.data1{1},2)
+                d = cellfun(@transpose,obj.data.data1,'UniformOutput',false);
+            else
+                d = obj.data.data1;
+            end
+            
+            group_sz = cellfun(@length,d);
+            
+            groups = [];
+            for ii = 1:length(group_sz)
+                groups = cat(2,groups,ii*ones(1,group_sz(ii)));
+            end
+            d = cat(1,d{:});
+            
+            % Plot the data
+            boxplot(d,groups);
+   
+            % Get the handles for changing values
+            h = findobj(gca);
+            obj.plotHandles(1) = DataObject(h);
+    
+            % Boxplots are hard to deal with because they're like 30 different
+            % plots on top of one another... don't currently have functionality to 
+            % change individual parts...
         end
     end
     
     methods (Access = private)
+      
+        function args = initializeArgs(obj,num_datasets,varargin) % Wrapper for initialization steps prior to plotting
+            obj.numDataChecker(num_datasets);
+            args = obj.vararginToStruct(varargin{:});
+            delete(obj.plotHandles);
+        end
+        
         function [h,args] = checkPlotProps(obj,varargin) % Used to make sure the inputs to setPlotProps are in the correct format
             if ~isnumeric(varargin{1}) % Checking if h_num is supplied, and adjusting based on that
                 h = 1;
@@ -143,11 +193,7 @@ properties (Access = protected)
         end
         
         
-        function [c,args] = initialize(obj,num_datasets,varargin) % Wrapper for initialization steps prior to plotting
-            obj.numDataChecker(num_datasets);
-            [c,args] = obj.argChecker(varargin{:});
-            delete(obj.plotHandles);
-        end
+        
         
         function numDataChecker(obj,expected) % Checking for the number of datasets supplied, and wheter or not that's compatible with the plot being made
             supplied = length(properties(obj.data)) ;
@@ -156,13 +202,12 @@ properties (Access = protected)
             end
         end
         
-        function [c,args] = argChecker(obj,varargin) % Argument checker for the plot.
+        function [c,varargin] = getCell(obj,varargin) % Argument checker for the plot.
             if nargin < 2
                 c = randi(size(obj.data.data1,1));
             else
                 if isvector(obj.data.data1)
                     c = 1;
-                    fprintf('Vector data, cell set to #1\n');
                     if isnumeric(varargin{1}) % If a cell number was supplied anyway, get rid of it
                         varargin = varargin(2:end); % Get rid of the cell number for the remainder...
                     end
@@ -178,14 +223,10 @@ properties (Access = protected)
                 end
             end
             
-            
-            
             % Construct arguments
             if mod(length(varargin),2)
                 error('Name-value pairs must be submitted in pairs')
             end
-            
-            args = obj.vararginToStruct(varargin{:});
         end
         
         function args = vararginToStruct(obj,varargin) % Quick function to turn the varargin cell array into a structure
