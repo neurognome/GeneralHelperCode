@@ -70,11 +70,11 @@ classdef DataObject < dynamicprops
             end
         end
         
-        function clearAllData(obj) % For clearing your entire data object, starting from scratch
+        function reset(obj) % For clearing your entire data object, starting from scratch
             delete(obj.dynamicproperties);
             obj.dynamicproperties = [];
         end
-        
+
         function importStruct(obj,S)
             props = properties(obj);
             fields = fieldnames(S);
