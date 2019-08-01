@@ -1,5 +1,41 @@
 classdef DataPlots < handle
-    properties
+%-------------------------------------------------------------------------%
+% A big class that handles all the visualization and plotting of various 
+% data types. Create the object, then set your data. Call from any of the
+% predefined plots, and pass Name-Value pairs via setPlotProps.
+% 
+% Currently supported plots:
+% 
+% polarPlot             Standard polar plots for circular data
+% linePlot              Standard line plot... for... everything
+% confidenceBandPlot    Scatter plot with overlaid regression line with a 
+%                       error band around it (Needs the confidenceBandPlot
+%                       class)
+%
+% Written 01Aug2019 KS
+% Updated 
+% ------------------------------------------------------------------------%
+
+%% Skeleton code 
+% % To add your own plots, copy this skeleton code
+% % Initializing and preparing for plotting
+%   [c,args] = obj.initialize(#,varargin{:}); %  # = number of input arguments to your main plot
+%             
+% % Calculation of data necessary from the raw data
+%     obj.data.data# % retrieve data from the DataObject
+%     
+% % Plot the data
+%    h = whateverplotyouneed(obj.data.data#)
+% 
+% % Get the handles for changing values
+%    obj.plotHandles(1) = DataObject('h');
+%             
+% % Setting the plot styles
+%    obj.setPlotProps(1,'LineWidth',2); % Set defaults    
+% % User-defined look
+%    obj.setPlotProps(args); % Pass in name-value pairs
+%%
+properties (Access = protected)
         data
         plotHandles
     end
@@ -11,12 +47,12 @@ classdef DataPlots < handle
             obj.plotHandles = DataObject();
         end
         
-        function obj = setPlottingData(obj,varargin) % varargin because sometimes you need 2 datasets (eg scatter plots)
+        function obj = setPlotData(obj,varargin) % varargin because sometimes you need 2 datasets (eg scatter plots)
             obj.data.reset(); % Get rid of old data from previous plot
             temp = struct(); % Temporarly assign to a structure so it goes into the DataObject easier
             for ii = 1:length(varargin)
                 d = varargin{ii};
-                if isvector(d) && (size(d,2) > size(d,1)) % If it's a row vector, transpose into a column vector
+                if isvector(d) && (size(d,2) < size(d,1)) % If it's a row vector, transpose into a column vector
                     d = d';
                 end
                 temp.(sprintf('data%d',ii)) = d; % Assign in increasing number, so we know...
@@ -34,20 +70,23 @@ classdef DataPlots < handle
                 obj.plotHandles(h).(plotHandleProps{1}).(argFields{a}) = args.(argFields{a}); % heavy use of dynamic names..
             end
         end
-        %----------------------------------Plots----------------------------------%
+        
+        %----------------------Plots--------------------------%
         function polarPlot(obj,varargin) % As an example, there's there parts to this
             % Initializing and preparing for plotting
             [c,args] = obj.initialize(1,varargin{:});
             
             % Calculation of data necessary from the raw data
             rho = obj.data.data1(c,:);
-            rho = [rho rho(1)];           
+            rho = [rho rho(1)];
             theta = linspace(0,2*pi, size(obj.data.data1,2)+1);
             
-            % The actual plotting
+            % Plot the data
             clf
             ax = polaraxes();
             line = polarplot(theta,rho);
+            
+            % Get the handles for changing values
             obj.plotHandles(1) = DataObject('line');
             obj.plotHandles(2) = DataObject('ax');
             
@@ -65,14 +104,26 @@ classdef DataPlots < handle
             
             line = plot(obj.data.data1(c,:));
             
-            obj.plotHandles(1) = DataObject('line');    
+            obj.plotHandles(1) = DataObject('line');
             obj.setPlotProps(1,'LineWidth',2);
             obj.setPlotProps(args);
-            
         end
         
-        
-        
+        function confidenceBandPlot(obj,varargin)
+            % Initializing and preparing for plotting
+            [c,args] = obj.initialize(2,varargin{:}); 
+            
+            % Calculation of data necessary from the raw data
+
+            % Plot the data
+            cb_plot = confidenceBandPlot(obj.data.data1,obj.data.data2);
+            
+            % Get the handles for changing values
+            obj.plotHandles(1) = DataObject('cb_plot');
+            
+            % Setting the plot styles
+            obj.setPlotProps(args); % Pass in name-value pairs
+        end
     end
     
     methods (Access = private)
@@ -108,20 +159,27 @@ classdef DataPlots < handle
         function [c,args] = argChecker(obj,varargin) % Argument checker for the plot.
             if nargin < 2
                 c = randi(size(obj.data.data1,1));
-                fprintf('No cell chosen, randomly selected cell #%d\n',c);
             else
-            if isvector(obj.data.data1) % If the data are in a vector, c = 1; since that's your only option...
-                c = 1;
-            else
-                if ~isscalar(varargin{1}) % If a matrix, need to specify the cell number you want to plot
-                    c = randi(size(obj.data.data1,1));
-                    fprintf('No cell chosen, randomly selected cell #%d\n',c);
+                if isvector(obj.data.data1)
+                    c = 1;
+                    fprintf('Vector data, cell set to #1\n');
+                    if isnumeric(varargin{1}) % If a cell number was supplied anyway, get rid of it
+                        varargin = varargin(2:end); % Get rid of the cell number for the remainder...
+                    end
                 else
-                    c = varargin{1};
-                    varargin = varargin(2:end); % Get rid of the cell number for the remainder...
+                    if isnumeric(varargin{1})
+                        c = varargin{1};
+                        fprintf('Plotting cell %d\n',c);
+                        varargin = varargin(2:end); % Get rid of the cell number for the remainder...
+                    else
+                        c = randi(size(obj.data.data1,1));
+                        fprintf('No cell chosen, randomly selected cell #%d\n',c);
+                    end
                 end
             end
-            end
+            
+            
+            
             % Construct arguments
             if mod(length(varargin),2)
                 error('Name-value pairs must be submitted in pairs')
