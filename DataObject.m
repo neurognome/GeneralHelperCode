@@ -55,12 +55,12 @@ classdef DataObject < dynamicprops
                     obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
                     
                 end
-            catch ME
+            catch
                     obj.msgPrinter('Unknown error, data not added \n');       
             end
         end
         
-        function delete(obj,varargin) % Getting rid of individual fields of data
+        function remove(obj,varargin) % Getting rid of individual fields of data
             try
                 dynamic_property_list = {obj.dynamicproperties.Name}; % Find the properties you want to get rid of
                 isDeleteProperty = ismember(dynamic_property_list,varargin);
@@ -72,8 +72,9 @@ classdef DataObject < dynamicprops
         end
         
         function reset(obj) % For clearing your entire data object, starting from scratch
-            delete(obj.dynamicproperties);
-            obj.dynamicproperties = [];
+            delete(obj);
+            %obj.dynamicproperties = [];
+            obj = DataObject();
         end
 
         function importStruct(obj,S)
