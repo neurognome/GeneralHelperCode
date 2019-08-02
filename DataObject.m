@@ -140,9 +140,6 @@ classdef DataObject < dynamicprops
         end
     end
     
-    
-    
-    
     methods (Access = private)
         function msgPrinter(obj,str)
             fprintf(str);
