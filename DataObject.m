@@ -37,9 +37,14 @@ classdef DataObject < dynamicprops
         end
         
         %---------------- Manipulating Stored Data -------------------------------%
-        function addData(obj,varargin) % In order to add more data to our object
+        function add(obj,varargin) % In order to add more data to our object
             try
                 for ii = 1:nargin-1 % because there will always be "obj" there
+                    % Overwrite the property
+                    if ismember(inputname(ii+1),properties(obj))
+                        obj.delete(inputname(ii+1));
+                        obj.msgPrinter(sprintf('Overwriting: %s\n',inputname(ii+1)));
+                    end
                     if ischar(varargin{ii})
                         p(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
                         obj.(varargin{ii}) = evalin('caller',[varargin{ii} ';']); % Fills in those properties with the values
@@ -51,15 +56,11 @@ classdef DataObject < dynamicprops
                     
                 end
             catch ME
-                if strcmp(ME.identifier,'MATLAB:class:PropertyInUse')
-                    obj.msgPrinter('Property already exists \n');
-                else
-                    obj.msgPrinter('Unknown error, data not added \n');
-                end
+                    obj.msgPrinter('Unknown error, data not added \n');       
             end
         end
         
-        function deleteData(obj,varargin) % Getting rid of individual fields of data
+        function delete(obj,varargin) % Getting rid of individual fields of data
             try
                 dynamic_property_list = {obj.dynamicproperties.Name}; % Find the properties you want to get rid of
                 isDeleteProperty = ismember(dynamic_property_list,varargin);
@@ -94,7 +95,7 @@ classdef DataObject < dynamicprops
         end
         
         %----------------- Exporting Stored Data ---------------------------------%
-        function varargout = exportData(obj,varargin) % Generally recommended, outputs to struct
+        function varargout = export(obj,varargin) % Generally recommended, outputs to struct
             props = properties(obj);
             if nargin < 2 % create the structure based on queried input variables
                 out = struct();
@@ -116,7 +117,7 @@ classdef DataObject < dynamicprops
             end
         end
         
-        function exportToVar(obj,varargin) % Generally not recommended, use exportData instead
+        function exportVar(obj,varargin) % Generally not recommended, use exportData instead
             % obj.msgPrinter('Not recommended (uses assignin), better to access the properties directly...\n')
             props = properties(obj);
             
@@ -134,7 +135,13 @@ classdef DataObject < dynamicprops
                 
             end
         end
+        
+        function out = get(obj,var)
+            out = obj.(var);
+        end
     end
+    
+    
     
     
     methods (Access = private)
