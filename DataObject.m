@@ -42,17 +42,17 @@ classdef DataObject < dynamicprops
                 for ii = 1:nargin-1 % because there will always be "obj" there
                     % Overwrite the property
                     if ismember(inputname(ii+1),properties(obj))
-                        obj.delete(inputname(ii+1));
+                        obj.remove(inputname(ii+1));
                         obj.msgPrinter(sprintf('Overwriting: %s\n',inputname(ii+1)));
                     end
                     if ischar(varargin{ii})
-                        p(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
+                        dynprops(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
                         obj.(varargin{ii}) = evalin('caller',[varargin{ii} ';']); % Fills in those properties with the values
                     else
-                        p(ii) = obj.addprop(inputname(ii+1));
+                        dynprops(ii) = obj.addprop(inputname(ii+1));
                         obj.(inputname(ii+1)) = varargin{ii};
                     end
-                    obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
+                    obj.dynamicproperties = [obj.dynamicproperties dynprops]; % extending the thing
                     
                 end
             catch
@@ -87,9 +87,9 @@ classdef DataObject < dynamicprops
                     fieldname = fields{ii};
                 end   
                 
-                p(ii) = obj.addprop(fieldname);
+                dynprops(ii) = obj.addprop(fieldname);
                 obj.(fieldname) = S.(fields{ii});
-                obj.dynamicproperties = [obj.dynamicproperties p]; % extending the thing
+                obj.dynamicproperties = [obj.dynamicproperties dynprops]; % extending the thing
             end
         end
         
