@@ -1,20 +1,15 @@
 classdef DataPlots < handle
     %-------------------------------------------------------------------------%
-    % A big class that handles all the visualization and plotting of various
-    % data types. Create the object, then set your data. Call from any of the
-    % predefined plots, and pass Name-Value pairs via setPlotProps.
+    % Superclass that other DataPlot classes derive from. Mainly contains some
+    % helper functions for checking input arguments and setting the plotting 
+    % data and changing plot props.
     %
-    % Currently supported plots:
-    % Name                  Descrip.                                            Num Datasets    Data formats
-    % polarPlot             Standard polar plots for circular data              1               m x n arrays
-    % linePlot              Standard line plot... for... everything             1               m x n arrays
-    % confidenceBandPlot    Scatter plot with overlaid regression line with a   2               1 x n arrays
-    %                       error band around it (Needs the confidenceBandPlot
-    %                       class)
-    % boxPlot               Box plot for comparing medians                      1               1 x n cell array
+    % Current derived classes:
+    % RawDataPlots          For cell x n data, "raw data"
+    % SummaryDataPlots      For 1 x cell data, from metrics and other summary stuff
     %
     % Written 01Aug2019 KS
-    % Updated
+    % Updated 02Aug2019 KS  Removed the actual plots from this code to clean it up
     % ------------------------------------------------------------------------%
     
     %% To add your own plots, copy this skeleton code
@@ -36,18 +31,16 @@ classdef DataPlots < handle
     % % User-defined look
     %    obj.setProps(args); % Pass in name-value pairs
     %%
-    properties
-       % data
-    end
-
+    
     properties (Access = protected)
+        data
         plotHandles
     end
     
     methods
         function obj = DataPlots() % empty contsructor, because nothing happens by default...
             % initialize dataobjects
-          %  obj.data = DataObject();
+            obj.data = DataObject();
             obj.plotHandles = DataObject();
         end
         
@@ -75,109 +68,17 @@ classdef DataPlots < handle
             end
         end
         
-%         %----------------------Plots--------------------------%
-%         function polarPlot(obj,varargin) % As an example, there's there parts to this
-%             % Initializing and preparing for plotting
-%             [c,varargin] = obj.getCell(varargin{:});
-%             args = obj.initializeArgs(1,varargin{:});
-%             
-%             % Calculation of data necessary from the raw data
-%             rho = obj.data.data1(c,:);
-%             rho = [rho rho(1)];
-%             theta = linspace(0,2*pi, size(obj.data.data1,2)+1);
-%             
-%             % Plot the data
-%             clf
-%             ax = polaraxes();
-%             line = polarplot(theta,rho);
-%             
-%             % Get the handles for changing values
-%             obj.plotHandles(1) = DataObject('line');
-%             obj.plotHandles(2) = DataObject('ax');
-%             
-%             % Setting the plot styles
-%             % Default look
-%             obj.setProps(1,'LineWidth',2);
-%             obj.setProps(2,'ThetaZeroLocation','top','ThetaDir','clockwise');
-%             
-%             % User-defined look
-%             obj.setProps(args);
-%         end
-%         
-%         function linePlot(obj,varargin)
-%             [c,varargin] = obj.getCell(varargin{:});
-%             args = obj.initializeArgs(1,varargin{:});
-%             
-%             line = plot(obj.data.data1(c,:));
-%             ax   = gca;
-%             obj.plotHandles(1) = DataObject('line');
-%             obj.plotHandles(2) = DataObject('ax');
-%             
-%             obj.setProps(1,'LineWidth',2);
-%             obj.setProps(args);
-%         end
-        
-        function confidenceBandPlot(obj,varargin)
-            % Initializing and preparing for plotting
-            args = obj.initializeArgs(2,varargin{:});
-            
-            % Calculation of data necessary from the raw data
-            
-            % Plot the data
-            cb_plot = confidenceBandPlot(obj.data.data1,obj.data.data2);
-            ax      = get(gca);
-            % Get the handles for changing values
-            obj.plotHandles(1) = DataObject('cb_plot');
-            obj.plotHandles(2) = DataObject('ax');
-            
-            % Setting the plot styles
-            obj.setProps(args); % Pass in name-value pairs
-        end
-        
-        function boxPlot(obj,varargin)
-            % Initializing and preparing for plotting
-            args = obj.initializeArgs(1,varargin{:});
-            
-            if ~isempty(fields(args))
-                fprintf('Warning, boxplots are annoying, can''t set properties...\n')
-                args = varargin; % workaround
-            end
-            
-            % Calculation of data necessary from the raw data
-            if size(obj.data.data1{1},1) < size(obj.data.data1{1},2)
-                d = cellfun(@transpose,obj.data.data1,'UniformOutput',false);
-            else
-                d = obj.data.data1;
-            end
-            
-            group_sz = cellfun(@length,d);
-            
-            groups = [];
-            for ii = 1:length(group_sz)
-                groups = cat(2,groups,ii*ones(1,group_sz(ii)));
-            end
-            d = cat(1,d{:});
-            
-            % Plot the data
-            boxplot(d,groups,args{:});
-            ax = get(gca);
-            % Get the handles for changing values
-            h = findobj(gca);
-            obj.plotHandles(1) = DataObject(h);
-            obj.plotHandles(2) = DataObject(ax);
-    
-            % Boxplots are hard to deal with because they're like 30 different
-            % plots on top of one another... don't currently have functionality to 
-            % change individual parts...
-        end
     end
     
     methods (Access = protected)
       
         function args = initializeArgs(obj,num_datasets,varargin) % Wrapper for initialization steps prior to plotting
+            if mod(length(varargin),2)
+                error('Name-value pairs must be submitted in pairs')
+            end
             obj.numDataChecker(num_datasets);
             args = obj.vararginToStruct(varargin{:});
-            obj.plotHandles.reset;
+            obj.plotHandles = DataObject(); % Recreate the object. This is because the reset method of DataObject won't kill the entire array
         end
         
         function [h,args] = checkPlotProps(obj,varargin) % Used to make sure the inputs to setPlotProps are in the correct format
@@ -202,39 +103,23 @@ classdef DataPlots < handle
             end
         end
         
-        function [c,varargin] = getCell(obj,varargin) % Argument checker for the plot.
-            if nargin < 2
-                c = randi(size(obj.data.data1,1));
-            else
-                if isvector(obj.data.data1)
-                    c = 1;
-                    if isnumeric(varargin{1}) % If a cell number was supplied anyway, get rid of it
-                        varargin = varargin(2:end); % Get rid of the cell number for the remainder...
-                    end
-                else
-                    if isnumeric(varargin{1})
-                        c = varargin{1};
-                        fprintf('Plotting cell %d\n',c);
-                        varargin = varargin(2:end); % Get rid of the cell number for the remainder...
-                    else
-                        c = randi(size(obj.data.data1,1));
-                        fprintf('No cell chosen, randomly selected cell #%d\n',c);
-                    end
-                end
-            end
-            
-            % Construct arguments
-            if mod(length(varargin),2)
-                error('Name-value pairs must be submitted in pairs')
-            end
-        end
-        
         function args = vararginToStruct(obj,varargin) % Quick function to turn the varargin cell array into a structure
             nm_pair = reshape(varargin,2,[])'; % reshaping to 2 colums, each row is a Name-Value pair
             args = struct();
             for ii = 1:size(nm_pair,1)
                 args.(nm_pair{ii,1}) = nm_pair{ii,2}; % Organizing NM-pairs into structure
             end
+        end
+        
+        function createPlotHandles(obj,varargin)
+            
+            for ii = 1:length(varargin)
+                temp = struct();
+                temp.(inputname(ii+1)) = varargin{ii};
+                obj.plotHandles(ii) = DataObject();
+                obj.plotHandles(ii).importStruct(temp);
+            end
+    
         end
     end
 end
