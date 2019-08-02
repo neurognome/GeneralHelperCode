@@ -37,7 +37,7 @@ classdef DataPlots < handle
     %    obj.setProps(args); % Pass in name-value pairs
     %%
     properties
-        data
+       % data
     end
 
     properties (Access = protected)
@@ -47,7 +47,7 @@ classdef DataPlots < handle
     methods
         function obj = DataPlots() % empty contsructor, because nothing happens by default...
             % initialize dataobjects
-            obj.data = DataObject();
+          %  obj.data = DataObject();
             obj.plotHandles = DataObject();
         end
         
@@ -75,47 +75,47 @@ classdef DataPlots < handle
             end
         end
         
-        %----------------------Plots--------------------------%
-        function polarPlot(obj,varargin) % As an example, there's there parts to this
-            % Initializing and preparing for plotting
-            [c,varargin] = obj.getCell(varargin{:});
-            args = obj.initializeArgs(1,varargin{:});
-            
-            % Calculation of data necessary from the raw data
-            rho = obj.data.data1(c,:);
-            rho = [rho rho(1)];
-            theta = linspace(0,2*pi, size(obj.data.data1,2)+1);
-            
-            % Plot the data
-            clf
-            ax = polaraxes();
-            line = polarplot(theta,rho);
-            
-            % Get the handles for changing values
-            obj.plotHandles(1) = DataObject('line');
-            obj.plotHandles(2) = DataObject('ax');
-            
-            % Setting the plot styles
-            % Default look
-            obj.setProps(1,'LineWidth',2);
-            obj.setProps(2,'ThetaZeroLocation','top','ThetaDir','clockwise');
-            
-            % User-defined look
-            obj.setProps(args);
-        end
-        
-        function linePlot(obj,varargin)
-            [c,varargin] = obj.getCell(varargin{:});
-            args = obj.initializeArgs(1,varargin{:});
-            
-            line = plot(obj.data.data1(c,:));
-            ax   = gca;
-            obj.plotHandles(1) = DataObject('line');
-            obj.plotHandles(2) = DataObject('ax');
-            
-            obj.setProps(1,'LineWidth',2);
-            obj.setProps(args);
-        end
+%         %----------------------Plots--------------------------%
+%         function polarPlot(obj,varargin) % As an example, there's there parts to this
+%             % Initializing and preparing for plotting
+%             [c,varargin] = obj.getCell(varargin{:});
+%             args = obj.initializeArgs(1,varargin{:});
+%             
+%             % Calculation of data necessary from the raw data
+%             rho = obj.data.data1(c,:);
+%             rho = [rho rho(1)];
+%             theta = linspace(0,2*pi, size(obj.data.data1,2)+1);
+%             
+%             % Plot the data
+%             clf
+%             ax = polaraxes();
+%             line = polarplot(theta,rho);
+%             
+%             % Get the handles for changing values
+%             obj.plotHandles(1) = DataObject('line');
+%             obj.plotHandles(2) = DataObject('ax');
+%             
+%             % Setting the plot styles
+%             % Default look
+%             obj.setProps(1,'LineWidth',2);
+%             obj.setProps(2,'ThetaZeroLocation','top','ThetaDir','clockwise');
+%             
+%             % User-defined look
+%             obj.setProps(args);
+%         end
+%         
+%         function linePlot(obj,varargin)
+%             [c,varargin] = obj.getCell(varargin{:});
+%             args = obj.initializeArgs(1,varargin{:});
+%             
+%             line = plot(obj.data.data1(c,:));
+%             ax   = gca;
+%             obj.plotHandles(1) = DataObject('line');
+%             obj.plotHandles(2) = DataObject('ax');
+%             
+%             obj.setProps(1,'LineWidth',2);
+%             obj.setProps(args);
+%         end
         
         function confidenceBandPlot(obj,varargin)
             % Initializing and preparing for plotting
@@ -125,9 +125,10 @@ classdef DataPlots < handle
             
             % Plot the data
             cb_plot = confidenceBandPlot(obj.data.data1,obj.data.data2);
-            
+            ax      = get(gca);
             % Get the handles for changing values
             obj.plotHandles(1) = DataObject('cb_plot');
+            obj.plotHandles(2) = DataObject('ax');
             
             % Setting the plot styles
             obj.setProps(args); % Pass in name-value pairs
@@ -138,7 +139,8 @@ classdef DataPlots < handle
             args = obj.initializeArgs(1,varargin{:});
             
             if ~isempty(fields(args))
-                fprintf('Warning, boxplots are annoying, can''t change properties...\n')
+                fprintf('Warning, boxplots are annoying, can''t set properties...\n')
+                args = varargin; % workaround
             end
             
             % Calculation of data necessary from the raw data
@@ -157,11 +159,12 @@ classdef DataPlots < handle
             d = cat(1,d{:});
             
             % Plot the data
-            boxplot(d,groups);
-   
+            boxplot(d,groups,args{:});
+            ax = get(gca);
             % Get the handles for changing values
             h = findobj(gca);
             obj.plotHandles(1) = DataObject(h);
+            obj.plotHandles(2) = DataObject(ax);
     
             % Boxplots are hard to deal with because they're like 30 different
             % plots on top of one another... don't currently have functionality to 
@@ -169,12 +172,12 @@ classdef DataPlots < handle
         end
     end
     
-    methods (Access = private)
+    methods (Access = protected)
       
         function args = initializeArgs(obj,num_datasets,varargin) % Wrapper for initialization steps prior to plotting
             obj.numDataChecker(num_datasets);
             args = obj.vararginToStruct(varargin{:});
-            delete(obj.plotHandles);
+            obj.plotHandles.reset;
         end
         
         function [h,args] = checkPlotProps(obj,varargin) % Used to make sure the inputs to setPlotProps are in the correct format
@@ -191,9 +194,6 @@ classdef DataPlots < handle
                 args = obj.vararginToStruct(varargin{:}); % If they're name-value pairs, then convert into argument structure
             end
         end
-        
-        
-        
         
         function numDataChecker(obj,expected) % Checking for the number of datasets supplied, and wheter or not that's compatible with the plot being made
             supplied = length(properties(obj.data)) ;

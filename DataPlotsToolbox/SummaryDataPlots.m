@@ -1,0 +1,2 @@
+classdef SummaryDataPlots < DataPlots
+end
