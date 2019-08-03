@@ -41,14 +41,19 @@ classdef DataObject < dynamicprops
             try
                 for ii = 1:nargin-1 % because there will always be "obj" there
                     % Overwrite the property
-                    if ismember(inputname(ii+1),properties(obj))
-                        obj.remove(inputname(ii+1));
-                        obj.msgPrinter(sprintf('Overwriting: %s\n',inputname(ii+1)));
-                    end
+      
                     if ischar(varargin{ii})
+                        if ismember(varargin{ii},properties(obj))
+                            obj.remove(varargin{ii});
+                            obj.msgPrinter(sprintf('Overwriting: %s\n',varargin{ii}));
+                        end
                         dynprops(ii) = obj.addprop(varargin{ii}); % adds them as dynamic properties
                         obj.(varargin{ii}) = evalin('caller',[varargin{ii} ';']); % Fills in those properties with the values
                     else
+                        if ismember(inputname(ii+1),properties(obj))
+                            obj.remove(inputname(ii+1));
+                            obj.msgPrinter(sprintf('Overwriting: %s\n',inputname(ii+1)));
+                        end
                         dynprops(ii) = obj.addprop(inputname(ii+1));
                         obj.(inputname(ii+1)) = varargin{ii};
                     end
@@ -56,7 +61,7 @@ classdef DataObject < dynamicprops
                     
                 end
             catch
-                    obj.msgPrinter('Unknown error, data not added \n');       
+                obj.msgPrinter('Unknown error, data not added \n');
             end
         end
         
@@ -74,18 +79,18 @@ classdef DataObject < dynamicprops
         function obj = reset(obj) % For clearing your entire data object, starting from scratch
             delete(obj.dynamicproperties);
         end
-
+        
         function importStruct(obj,S)
             props = properties(obj);
             fields = fieldnames(S);
-            for ii = 1:length(fields)      
+            for ii = 1:length(fields)
                 
                 if ismember(fields{ii},props)
                     fieldname = strcat(fields{ii}, '_', inputname(2));
                     obj.msgPrinter(sprintf('Renamed field: %s -> %s\n',fields{ii},fieldname));
                 else
                     fieldname = fields{ii};
-                end   
+                end
                 
                 dynprops(ii) = obj.addprop(fieldname);
                 obj.(fieldname) = S.(fields{ii});
