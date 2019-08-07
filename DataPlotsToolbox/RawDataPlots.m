@@ -25,10 +25,16 @@ classdef RawDataPlots < DataPlots
             % Initializing and preparing for plotting
             [c,varargin] = obj.getCell(varargin{:});
             args = obj.initializeArgs(1,varargin{:});
-            
             % Calculation of data necessary from the raw data
             rho = obj.data.data1(c,:);
             rho = [rho rho(1)];
+            if isfield(args,'Rectify')
+                if args.Rectify
+                    rho = rho - min(rho(:));
+                end
+                args = rmfield(args,'Rectify');
+            end    
+      
             theta = linspace(0,2*pi, size(obj.data.data1,2)+1);
             
             % Plot the data
