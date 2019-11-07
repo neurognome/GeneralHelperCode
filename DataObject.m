@@ -6,7 +6,7 @@ classdef DataObject < dynamicprops
     % individual data stored just by calling your object.dataYouWant
     %
     %
-    % Usage: data = dataObject('var1','var2','var3'), always takes strings
+    % Usage: data = DataObject('var1','var2','var3'), always takes strings
     % Written 26Jul2019 KS
     % Updated 27Jul2019 KS Better handling of inputs and refactored
     %                      message printer
@@ -36,7 +36,7 @@ classdef DataObject < dynamicprops
             end
         end
         
-        %---------------- Manipulating Stored Data -------------------------------%
+%---------------- Manipulating Stored Data -------------------------------%
         function add(obj,varargin) % In order to add more data to our object
             try
                 for ii = 1:nargin-1 % because there will always be "obj" there
@@ -98,7 +98,7 @@ classdef DataObject < dynamicprops
             end
         end
         
-        %----------------- Exporting Stored Data ---------------------------------%
+%----------------- Exporting Stored Data ---------------------------------%
         function varargout = export(obj,varargin) % Generally recommended, outputs to struct
             props = properties(obj);
             if nargin < 2 % create the structure based on queried input variables
@@ -146,7 +146,7 @@ classdef DataObject < dynamicprops
     end
     
     methods (Access = private)
-        function msgPrinter(obj,str)
+        function msgPrinter(obj, str)
             fprintf(str);
         end
     end

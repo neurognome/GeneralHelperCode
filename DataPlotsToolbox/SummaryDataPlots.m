@@ -24,6 +24,7 @@ classdef SummaryDataPlots < DataPlots
             
         end
         
+        
         function confidenceBandPlot(obj,varargin)
             % Initializing and preparing for plotting
             args = obj.initializeArgs(2,varargin{:});

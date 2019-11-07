@@ -1,0 +1,31 @@
+function colocalizer(data, red_data)
+% The purpose of this funciton is to take two images and figure out the "colocalization" between the two images. eg, take an
+% activity map and figure out which ROIs are present on the second image
+
+if nargin < 1 || isempty(data)
+    [fn, pn] =  uigetfile('*.mat');
+    data = importdata([pn '\' fn]);
+end
+
+if nargin < 2 || isempty(red_data)
+    [fn, pn] =  uigetfile('*.mat');
+    red_data = importdata([pn '\' fn]);
+end
+
+% Take the cell masks from data
+cell_masks = data.cellMasks;
+red_projection = red_data.avg_projection;
+
+% Use the cell masks to get values from red_data's avg projection
+
+img_size = size(red_projection);
+
+for i_cell = 1:length(cell_masks)
+    roi = poly2mask(cell_masks{i_cell}(:, 2), cell_masks{i_cell}(:,1 ), img_size(1), img_size(2));
+    mean_red_f(i_cell) = mean(red_projection(roi));
+end
+
+
+% Histogram of the stuff of red_data, then hopefully there's a nice distribution right?
+
+end

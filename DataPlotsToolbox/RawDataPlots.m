@@ -28,19 +28,20 @@ classdef RawDataPlots < DataPlots
             % Calculation of data necessary from the raw data
             rho = obj.data.data1(c,:);
             rho = [rho rho(1)];
+            
             if isfield(args,'Rectify')
                 if args.Rectify
-                    rho = rho - min(rho(:));
+                    rho(rho<0) = 0;
+                    %rho = rho - min(rho(:));
                 end
                 args = rmfield(args,'Rectify');
             end    
-      
+
             theta = linspace(0,2*pi, size(obj.data.data1,2)+1);
             
             % Plot the data
-            clf
-            ax = polaraxes();
-            line = polarplot(theta,rho);
+            line = polarplot(theta,rho,'-o');
+            ax = gca;
             
             % Get the handles for changing values
             obj.createPlotHandles(line,ax);    
