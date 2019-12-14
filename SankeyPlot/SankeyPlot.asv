@@ -11,7 +11,7 @@ classdef SankeyPlot < handle
     % Updated
     
     properties
-        spacing = 500; % Change this spacing to a % of the whole later on
+        spacing = 0.05; % 5% of max node size
         nodes
         links
         labels
@@ -46,17 +46,7 @@ classdef SankeyPlot < handle
             
             numberized_nodes(:, 3) = cat(1, input{:, 3});
             
-            %% Determine the amounts for each node
-            amounts = zeros(1, n_nodes);
-            for i_node = 1:n_nodes
-                if i_node == 1
-                    is_current_node = logical(sum(numberized_nodes(:, 1) == i_node, 2));
-                    amounts(i_node) =  sum([input{is_current_node, 3}]);
-                else
-                    is_current_node = logical(sum(numberized_nodes(:, 2) == i_node, 2));
-                    amounts(i_node) =  sum([input{is_current_node, 3}]);
-                end
-            end
+           
             
             %% Determine the node hierarchy
             node_hierarchy = zeros(1, n_nodes);
@@ -70,16 +60,7 @@ classdef SankeyPlot < handle
                             node_hierarchy(i_node) = level;
                         end
                     end
-                                        level = level + 1;
-
-%                     while a % Searching until we find the first node that has no preceding node, ie output but no inputs
-%                         i_node = i_node + 1;
-%                         if sum(numberized_nodes(:, 2) == i_node) == 0 % Find node with no inputs
-%                             a = false;
-%                         end
-%                     end
-%                     node_hierarchy(i_node) = level; % When we find it, assign that level 1 and move on
-%                     level = level + 1;
+                    level = level + 1;
                 else
                     prev_nodes = find(node_hierarchy == max(node_hierarchy)); % Find all nodes that are equal to the previous high value
                     for jj = 1:length(prev_nodes) % iterate through all possible nodes that were previously highest
@@ -89,6 +70,28 @@ classdef SankeyPlot < handle
                     level = level + 1; % After going through all possible node (names) of the same hierarchy, move on and increment level
                 end
             end
+            
+             %% Determine the amounts for each node
+             
+             % Something is wrong with this node calculation. this is the next step
+            amounts = zeros(1, n_nodes);
+            for i_node = 1:n_nodes
+                if node_hierarchy(i_node) == 1
+                    is_current_node = logical(sum(numberized_nodes(:, 1) == i_node, 2));
+                    amounts(i_node) =  sum([input{is_current_node, 3}]);
+                elseif node_hierarchy(i_node) == max(node_hierarchy)
+                    is_current_node = logical(sum(numberized_nodes(:, 2) == i_node, 2));
+                    amounts(i_node) =  sum([input{is_current_node, 3}]);
+                else
+                    if i_node == 7
+                        'hi'
+                    end
+                    is_current_node = logical(sum(numberized_nodes(:, 1) == i_node, 2));
+                    amounts(i_node) =  sum([input{is_current_node, 3}]);
+                end
+            end
+            
+            obj.spacing = max(amounts) .* obj.spacing;
             
             %% Instantiate all objects
             for i_node = 1:n_nodes
@@ -121,84 +124,79 @@ classdef SankeyPlot < handle
             levels = obj.getAllLevels(); % Return all the possible levels (hierarchies)
             
             for i_level = 1:max(levels) % Since this is hierarchical, each hierarchical level is dealt with one at a time
-                if i_level == 1 % First hierarchy works differently, plots the whole thing
-                    for i_node = 1:length(obj.nodes)
-                        node = obj.nodes(i_node);
-                    node.setCenter(node.getAmount()/2);
-                    node.generateVertices()
-                    end
-                else % The next hierarchical levels work differently
-                    nodes_in_hierarchy = find(levels == i_level); % First find the nodes that belong to this current hierarchical level
-                    n_nodes_to_plot = length(nodes_in_hierarchy);
-                    
-                    % Get previous nodes for proper sorting
-                    previous_node_centers = zeros(1, n_nodes_to_plot); % Find the previous nodes for each of the curretn nodes
-                    node_values = zeros(1, n_nodes_to_plot);
-                    
-                    % These steps need to be run on the entire hierarchy at once (group agnostic)
-                    previous_ceil = 0;
-                    ct = 1;
-                    for node = nodes_in_hierarchy
-                        previous_node = obj.nodes(node).getInput(); % This is not the best way to do this, because "input" is a property of the link, not the node... but this will work for new
-                        if length(previous_node) == 1 % only one previous
-                            previous_node_centers(ct) = obj.nodes(previous_node).getCenter;
-                        else % Multiple previous nodes
-                            temp = zeros(1, length(previous_node));
-                            for ii = 1:length(previous_node)
-                                temp(ii) = obj.nodes(previous_node(ii)).getCenter;
-                            end
-                            previous_node_centers(ct) = mean(temp);
+                nodes_in_hierarchy = find(levels == i_level); % First find the nodes that belong to this current hierarchical level
+                n_nodes_to_plot = length(nodes_in_hierarchy);
+                
+                % Get previous nodes for proper sorting
+                previous_node_centers = zeros(1, n_nodes_to_plot); % Find the previous nodes for each of the curretn nodes
+                node_values = zeros(1, n_nodes_to_plot);
+                
+                % These steps need to be run on the entire hierarchy at once (group agnostic)
+                previous_ceil = 0;
+                ct = 1;
+                for node = nodes_in_hierarchy
+                    previous_node = obj.nodes(node).getInput(); % This is not the best way to do this, because "input" is a property of the link, not the node... but this will work for new
+                    if length(previous_node) == 1 % only one previous
+                        previous_node_centers(ct) = obj.nodes(previous_node).getCenter;
+                    else % Multiple previous nodes
+                        temp = zeros(1, length(previous_node));
+                        for ii = 1:length(previous_node)
+                            temp(ii) = obj.nodes(previous_node(ii)).getCenter;
                         end
-                        
-                        node_values(ct) = obj.nodes(node).getAmount(); % Value of the current nodes in level, in a vector
-                        
-                        obj.nodes(node).setCenter(previous_ceil + node_values(ct) / 2); % Setting center based on previous node
-                        
-                        previous_ceil = sum(node_values(1:ct)); % Running total to make sure it's in the right place
-                        ct = ct + 1;
+                        previous_node_centers(ct) = mean(temp);
                     end
                     
-                    % These steps are group by group dependent, so are run afterwards, moving the centers away from each
-                    % other
+                    node_values(ct) = obj.nodes(node).getAmount(); % Value of the current nodes in level, in a vector
                     
+                    obj.nodes(node).setCenter(previous_ceil + node_values(ct) / 2); % Setting center based on previous node
                     
-                    %% Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
-%                     unique_previous_centers = unique(previous_node_centers); % Not all nodes are from the same input, so separate based on input first
-%                     for ii = 1:length(unique_previous_centers)
-%                         is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
-%                         center = zeros(1, length(is_grouped));
-%                         ct = 1;
-%                         for node = nodes_in_hierarchy(is_grouped)
-%                             center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
-%                             ct = ct + 1;
-%                         end
-%                         [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
-%                         [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
-%                         group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
-%                             (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
-%                         shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
-%                         center(is_grouped) = center(is_grouped) + shift; % Perform the shift
-%                         
-%                         ct = 1;
-%                         for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
-%                             obj.nodes(node).setCenter(center(ct));
-%                             ct = ct+1;
-%                         end
-%                     end
-%                     
-                    % Use all the information to finally set the vertices
-                    for node = nodes_in_hierarchy
-                        obj.nodes(node).generateVertices();
-                    end
-                    
-                    %Final step to adjust the spacing, run 10X to ensure no collisions lol
-                    if numel(nodes_in_hierarchy) > 1
-                        obj.spaceNodes(nodes_in_hierarchy);
-                    end
-                    
-                    
-                    
+                    previous_ceil = sum(node_values(1:ct)); % Running total to make sure it's in the right place
+                    ct = ct + 1;
                 end
+                
+                % These steps are group by group dependent, so are run afterwards, moving the centers away from each
+                % other
+                
+                
+                %% Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
+                %                     unique_previous_centers = unique(previous_node_centers); % Not all nodes are from the same input, so separate based on input first
+                %                     for ii = 1:length(unique_previous_centers)
+                %                         is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
+                %                         center = zeros(1, length(is_grouped));
+                %                         ct = 1;
+                %                         for node = nodes_in_hierarchy(is_grouped)
+                %                             center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
+                %                             ct = ct + 1;
+                %                         end
+                %                         [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
+                %                         [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
+                %                         group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
+                %                             (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
+                %                         shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
+                %                         center(is_grouped) = center(is_grouped) + shift; % Perform the shift
+                %
+                %                         ct = 1;
+                %                         for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
+                %                             obj.nodes(node).setCenter(center(ct));
+                %                             ct = ct+1;
+                %                         end
+                %                     end
+                %
+                % Use all the information to finally set the vertices
+                for node = nodes_in_hierarchy
+                    obj.nodes(node).generateVertices();
+                end
+                
+                %Final step to adjust the spacing, run 10X to ensure no collisions lol
+                if numel(nodes_in_hierarchy) > 1
+                    for ii = 1:5 % Because I don't know how to do recursion...
+                    obj.spaceNodes(nodes_in_hierarchy);
+                    end
+                end
+                
+                
+                
+                %                 end
             end
             
             % Setting colors for our objects
@@ -210,11 +208,11 @@ classdef SankeyPlot < handle
             % The purpose of this function is to calculate input (left) and output (right) connection points for each node
             for i_node = 1:length(obj.nodes)
                 % This also sorts the links. Finds all the links connected to the node on either side
-                input_links = obj.findLinks(i_node, 'input');
-                output_links = obj.findLinks(i_node, 'output');
+                input_links = obj.findLinks(i_node, 'output');
+                output_links = obj.findLinks(i_node, 'input');
                 
-                obj.setLinkVertices(input_links, i_node, 'input')
-                obj.setLinkVertices(output_links, i_node, 'output')
+                obj.setLinkVertices(input_links, i_node, 'output')
+                obj.setLinkVertices(output_links, i_node, 'input')
             end
         end
         
@@ -250,7 +248,7 @@ classdef SankeyPlot < handle
                 end
             end
         end
-
+        
         function setNodeColors(obj, color)
             if nargin < 2 || isempty(color)
                 color = lines(length(obj.nodes)); % Default
@@ -293,7 +291,7 @@ classdef SankeyPlot < handle
             
             ct = 1;
             for node = nodes % Reset the vertices and center after adjustments
-               obj.nodes(node).setVertices(pool(ct, :)); 
+                obj.nodes(node).setVertices(pool(ct, :));
                 obj.nodes(node).setCenter(sum(pool(ct, [3, 4]))/2)
                 ct = ct+1;
             end
@@ -368,13 +366,13 @@ classdef SankeyPlot < handle
     
     methods (Static = true)
         function data = processCSV(fn)
-        if nargin < 1 || isempty(fn)
-            fn = uigetfile('.csv');
-        end
-        [values, names] =  xlsread(fn);
-        names = names(2:end, 1:2); % Take the names, and don't include the table headers
-        
-        data = cat(2, names, num2cell(values));
+            if nargin < 1 || isempty(fn)
+                fn = uigetfile('.csv');
+            end
+            [values, names] =  xlsread(fn);
+            names = names(2:end, 1:2); % Take the names, and don't include the table headers
+            
+            data = cat(2, names, num2cell(values));
         end
     end
 end

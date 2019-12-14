@@ -11,7 +11,7 @@ classdef SankeyPlot < handle
     % Updated
     
     properties
-        spacing = 0.01; % 10% of max node size
+        spacing = 0.05; % 5% of max node size
         nodes
         links
         labels
@@ -72,14 +72,24 @@ classdef SankeyPlot < handle
             end
             
              %% Determine the amounts for each node
+             
+            
+            % Clean this up... especially the "else" portion
             amounts = zeros(1, n_nodes);
             for i_node = 1:n_nodes
                 if node_hierarchy(i_node) == 1
                     is_current_node = logical(sum(numberized_nodes(:, 1) == i_node, 2));
                     amounts(i_node) =  sum([input{is_current_node, 3}]);
-                else
+                elseif node_hierarchy(i_node) == max(node_hierarchy)
                     is_current_node = logical(sum(numberized_nodes(:, 2) == i_node, 2));
                     amounts(i_node) =  sum([input{is_current_node, 3}]);
+                else
+                    is_current_node = logical(sum(numberized_nodes(:, 1) == i_node, 2));
+                    temp(1) =  sum([input{is_current_node, 3}]);
+                    is_current_node = logical(sum(numberized_nodes(:, 2) == i_node, 2));
+                    temp(2) =   sum([input{is_current_node, 3}]);
+                    
+                    amounts(i_node) = max(temp);
                 end
             end
             

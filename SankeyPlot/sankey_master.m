@@ -14,7 +14,7 @@
 % 
 
 % or you can read the optional one
-data = SankeyPlot.processCSV();
+%data = SankeyPlot.processCSV();
 % The sankey plot works simply, all you need to do is 
 skp = SankeyPlot(data);
 skp.preprocessData();
