@@ -1,7 +1,12 @@
 function is_red_labeled = colocalizer(data, red_data, method)
 % The purpose of this funciton is to take two images and figure out the "colocalization" between the two images. eg, take an
-% activity map and figure out which ROIs are present on the second image
+% activity map and figure out which ROIs are present on the second image. Offers two methods: overlap and mean. Overlap
+% thresholds the map and then calculates overlap between each cell mask and the red reference, then considers cells with
+% greater than some amt of overlap to be colocalized. Mean takes the mean fluorescence at each cell mask and uses the
+% percentile to consider "bright enough" cells as colocalized.
 
+% Written 07Nov2019 KS
+% Updated 
 if nargin < 1 || isempty(data)
     disp('Choose your imaging data...')
     [fn, pn] =  uigetfile('*.mat');
@@ -41,6 +46,8 @@ switch method
         is_red_labeled = mean_red_f > prctile(mean_red_f, 90);
 end
 
+
+% Histogram of the stuff of red_data, then hopefully there's a nice distribution right?
 %
 % img = zeros(760);
 % for i_cell = 1:length(cell_masks)
@@ -50,9 +57,5 @@ end
 %     end
 % end
 % 
-
-
-
-% Histogram of the stuff of red_data, then hopefully there's a nice distribution right?
 
 end

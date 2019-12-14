@@ -1,0 +1,372 @@
+classdef SankeyPlot < handle
+    % Creates nice(ish) looking Sankey Plots for seeing how your cells (or other data) splits in the hierarchy. Data must be
+    % inputted as follows:
+    
+    % {'input', 'output', amount}, where 'input' is the left node, 'output' is the right node and amount is the #
+    % Store this as a matrix of cell arrays, at N x 3, where N is the number of relationships you have.
+    
+    % Currently no error checking... so be careful
+    
+    % Written 14Dec2019 KS
+    % Updated
+    
+    properties
+        spacing = 50; % Change this spacing to a % of the whole later on
+        nodes
+        links
+        labels
+    end
+    
+    methods
+        function obj = SankeyPlot(data)
+            obj.parseInputs(data)
+            figure
+        end
+        
+        function parseInputs(obj, input)
+            % The purpose of this function is to take the input and do some preprocessing into useful formats and instantiate
+            % all of our objects for later use
+            
+            if size(input, 2) ~= 3
+                error('Your data are in the wrong format, needs to be a cell array: {source, target, amt} for each link')
+            end
+            
+            %% Numberize nodes so you know parent-child relationships
+            node_names = unique(input(:, 1:2), 'stable');
+            n_nodes = length(node_names);
+            
+            numberized_nodes = zeros(size(input));
+            
+            node_id = 1;
+            for i_node = 1:length(node_names)
+                is_current_node = cellfun(@(x) strcmp(x, node_names(i_node)), input);
+                numberized_nodes(is_current_node) = node_id;
+                node_id = node_id + 1;
+            end
+            
+            numberized_nodes(:, 3) = cat(1, input{:, 3});
+            
+            %% Determine the amounts for each node
+            amounts = zeros(1, n_nodes);
+            for i_node = 1:n_nodes
+                if i_node == 1
+                    is_current_node = logical(sum(numberized_nodes(:, 1) == i_node, 2));
+                    amounts(i_node) =  sum([input{is_current_node, 3}]);
+                else
+                    is_current_node = logical(sum(numberized_nodes(:, 2) == i_node, 2));
+                    amounts(i_node) =  sum([input{is_current_node, 3}]);
+                end
+            end
+            
+            %% Determine the node hierarchy
+            node_hierarchy = zeros(1, n_nodes);
+            
+            level = 1;
+            for ii = 1: n_nodes
+                if ii == 1 % the first run is a little different
+                    a = true;
+                    i_node = 0;
+                    while a % Searching until we find the first node that has no preceding node, ie output but no inputs
+                        i_node = i_node + 1;
+                        if sum(numberized_nodes(:, 2) == i_node) == 0 % Find node with no inputs
+                            a = false;
+                        end
+                    end
+                    node_hierarchy(i_node) = level; % When we find it, assign that level 1 and move on
+                    level = level + 1;
+                else
+                    prev_nodes = find(node_hierarchy == max(node_hierarchy)); % Find all nodes that are equal to the previous high value
+                    for jj = 1:length(prev_nodes) % iterate through all possible nodes that were previously highest
+                        next_node = numberized_nodes(numberized_nodes(:, 1) == prev_nodes(jj), 2); % Get all nodes that match current highest node
+                        node_hierarchy(next_node) = level; % Assign level
+                    end
+                    level = level + 1; % After going through all possible node (names) of the same hierarchy, move on and increment level
+                end
+            end
+            
+            %% Instantiate all objects
+            for i_node = 1:n_nodes
+                input = numberized_nodes(numberized_nodes(:, 2) == i_node, 1); % Get the previous node of the current node
+                output = numberized_nodes(numberized_nodes(:, 1) == i_node, 2);
+                if i_node == 1
+                    obj.nodes =  NodeObject(node_names(i_node), amounts(i_node), node_hierarchy(i_node), input, output);
+                    obj.labels = TextObject(obj.nodes(i_node));
+                else
+                    obj.nodes(i_node) = NodeObject(node_names(i_node), amounts(i_node), node_hierarchy(i_node), input, output);
+                    obj.labels(i_node) = TextObject(obj.nodes(i_node));
+                end
+            end
+            
+            for i_link = 1:size(numberized_nodes, 1)
+                if i_link == 1
+                    obj.links = LinkObject(...
+                        numberized_nodes(i_link, 1), numberized_nodes(i_link, 2), numberized_nodes(i_link, 3));
+                else
+                    obj.links(i_link) = LinkObject(...
+                        numberized_nodes(i_link, 1), numberized_nodes(i_link, 2), numberized_nodes(i_link, 3));
+                end
+            end
+        end
+        
+        function preprocessData(obj)
+            % The purpose of this function is to do all the necessary calculations (especially for nodes) to get spacings and
+            % locations set for the nodes
+            
+            levels = obj.getAllLevels(); % Return all the possible levels (hierarchies)
+            
+            for i_level = 1:max(levels) % Since this is hierarchical, each hierarchical level is dealt with one at a time
+                if i_level == 1 % First hierarchy works differently, plots the whole thing
+                    first_node = find(levels == i_level);
+                    obj.nodes(first_node).setCenter(obj.nodes.getAmount()/2);
+                    obj.nodes(first_node).generateVertices()
+                else % The next hierarchical levels work differently
+                    nodes_in_hierarchy = find(levels == i_level); % First find the nodes that belong to this current hierarchical level
+                    n_nodes_to_plot = length(nodes_in_hierarchy);
+                    
+                    % Get previous nodes for proper sorting
+                    previous_node_centers = zeros(1, n_nodes_to_plot); % Find the previous nodes for each of the curretn nodes
+                    node_values = zeros(1, n_nodes_to_plot);
+                    
+                    % These steps need to be run on the entire hierarchy at once (group agnostic)
+                    previous_ceil = 0;
+                    ct = 1;
+                    for node = nodes_in_hierarchy
+                        previous_node = obj.nodes(node).getInput(); % This is not the best way to do this, because "input" is a property of the link, not the node... but this will work for new
+                        if length(previous_node) == 1 % only one previous
+                            previous_node_centers(ct) = obj.nodes(previous_node).getCenter;
+                        else % Multiple previous nodes
+                            temp = zeros(1, length(previous_node));
+                            for ii = 1:length(previous_node)
+                                temp(ii) = obj.nodes(previous_node(ii)).getCenter;
+                            end
+                            previous_node_centers(ct) = mean(temp);
+                        end
+                        
+                        node_values(ct) = obj.nodes(node).getAmount(); % Value of the current nodes in level, in a vector
+                        
+                        obj.nodes(node).setCenter(previous_ceil + node_values(ct) / 2); % Setting center based on previous node
+                        
+                        previous_ceil = sum(node_values(1:ct)); % Running total to make sure it's in the right place
+                        ct = ct + 1;
+                    end
+                    
+                    % These steps are group by group dependent, so are run afterwards, moving the centers away from each
+                    % other
+                    
+                    
+                    %% Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
+%                     unique_previous_centers = unique(previous_node_centers); % Not all nodes are from the same input, so separate based on input first
+%                     for ii = 1:length(unique_previous_centers)
+%                         is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
+%                         center = zeros(1, length(is_grouped));
+%                         ct = 1;
+%                         for node = nodes_in_hierarchy(is_grouped)
+%                             center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
+%                             ct = ct + 1;
+%                         end
+%                         [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
+%                         [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
+%                         group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
+%                             (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
+%                         shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
+%                         center(is_grouped) = center(is_grouped) + shift; % Perform the shift
+%                         
+%                         ct = 1;
+%                         for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
+%                             obj.nodes(node).setCenter(center(ct));
+%                             ct = ct+1;
+%                         end
+%                     end
+%                     
+                    % Use all the information to finally set the vertices
+                    for node = nodes_in_hierarchy
+                        obj.nodes(node).generateVertices();
+                    end
+                    
+                    %Final step to adjust the spacing, run 10X to ensure no collisions lol
+                    if numel(nodes_in_hierarchy) > 1
+                        obj.spaceNodes(nodes_in_hierarchy);
+                    end
+                    
+                    
+                    
+                end
+            end
+            
+            % Setting colors for our objects
+            obj.setNodeColors(); % Not ideal, but we need to set the colors here because the links are dependent on the nodes
+            obj.setLinkColors();
+        end
+        
+        function calculateConnectionPoints(obj)
+            % The purpose of this function is to calculate input (left) and output (right) connection points for each node
+            for i_node = 1:length(obj.nodes)
+                % This also sorts the links. Finds all the links connected to the node on either side
+                input_links = obj.findLinks(i_node, 'input');
+                output_links = obj.findLinks(i_node, 'output');
+                
+                obj.setLinkVertices(input_links, i_node, 'input')
+                obj.setLinkVertices(output_links, i_node, 'output')
+            end
+        end
+        
+        % Creating each portion of the graph
+        function createLabels(obj)
+            for label = obj.labels
+                label.draw();
+            end
+            
+        end
+        
+        function createLinks(obj)
+            for link = obj.links
+                %obj.drawSimpleLink(i_link)
+                link.draw();
+            end
+        end
+        
+        function createNodes(obj)
+            for node = obj.nodes
+                node.draw();
+            end
+        end
+        
+        % these are for updating and changing the graph... doesn't work right now (need a separate version that sets then
+        % replots
+        function setLinkColors(obj, color)
+            for link = obj.links
+                if ~exist('color', 'var') %Nothing provided
+                    link.setColor(obj.generateColor(link)); % can't be done in the link object, because requires node information
+                else
+                    link.setColor(color)
+                end
+            end
+        end
+
+        function setNodeColors(obj, color)
+            if nargin < 2 || isempty(color)
+                color = lines(length(obj.nodes)); % Default
+            end
+            
+            if size(color, 1) == 1 % Single color provided
+                color = repmat(color, 2, length(obj.nodes));
+            end
+            for i_node = 1:length(obj.nodes)
+                obj.nodes(i_node).setColor(color(i_node, :))
+            end
+        end
+    end
+    
+    methods (Access = protected)
+        function spaceNodes(obj, nodes)
+            % To space the nodes to meet the predefined spacing
+            % To do: change the spacing method so it's not just pushed in one direction every time
+            pool = zeros(length(nodes), 4);
+            ct = 1;
+            for node = nodes
+                pool(ct, :) = obj.nodes(node).getVertex(); % Get all the nodes in the current pool
+                ct = ct+1;
+            end
+            
+            ct = 0;
+            for i_node = 1:length(nodes) % Detect collision and shift
+                lo = pool(i_node, 3);
+
+                     i_collision = (pool(1:end ~= i_node, [3, 4]) - lo) < 0.01; % weird issue with rounding, adding some tolerance
+                if any(i_collision(:))
+                    pool(i_node, [3, 4]) = pool(i_node, [3, 4]) + (pool(1:end ~= i_node, 4) - pool(i_node, 3)) + obj.spacing; % If collision, move it
+                    ct = ct + 1;
+                end
+
+            end
+            
+            ct = 1;
+            for node = nodes % Reset the vertices and center after adjustments
+               obj.nodes(node).setVertices(pool(ct, :)); 
+                obj.nodes(node).setCenter(sum(pool(ct, [3, 4]))/2)
+                ct = ct+1;
+            end
+        end
+        
+        function out = generateColor(obj, link)
+            % Getting colors for the links from previous nodes
+            out = obj.nodes(link.getInput()).color;
+        end
+        
+        function levels = getAllLevels(obj)
+            % Returns all hierarchical levels, since each node object holds its own level
+            levels = zeros(1, length(obj.nodes));
+            for ii = 1:length(obj.nodes)
+                levels(ii) = obj.nodes(ii).getLevel;
+            end
+        end
+        
+        function out = findLinks(obj, node, side)
+            % Find links to the current node, side dependent
+            is_link = false(1, length(obj.links));
+            for i_link = 1:length(obj.links)
+                switch side % Flipped b/c inputs of the link mean output
+                    case 'output'
+                        is_link(i_link) = node == obj.links(i_link).getInput();
+                    case 'input'
+                        is_link(i_link) = node == obj.links(i_link).getOutput();
+                end
+            end
+            
+            out = obj.sortLinks(find(is_link), side); % Sort the links
+        end
+        
+        function setLinkVertices(obj, links, node, side)
+            % Setting the actual vertices for each link, requires information about node, so it's out here
+            running_total = 0;
+            for l = links
+                link_amt = obj.links(l).getAmount();
+                bottom = obj.nodes(node).getVertex(3) + running_total;
+                switch side
+                    case 'input'
+                        obj.links(l).setInputVertices([obj.nodes(node).getVertex(1), obj.nodes(node).getVertex(2),...
+                            bottom, bottom + link_amt]);
+                    case 'output'
+                        obj.links(l).setOutputVertices([obj.nodes(node).getVertex(1), obj.nodes(node).getVertex(2),...
+                            bottom, bottom + link_amt]);
+                end
+                running_total = running_total + link_amt;
+            end
+        end
+        
+        function sorted_links = sortLinks(obj, links, side)
+            % Sorts links to prevent links from crossing
+            order = zeros(size(links));
+            ct = 1;
+            for l = links
+                switch side
+                    case 'input'
+                        order(ct) = obj.nodes(...
+                            obj.links(l).getInput()).getCenter(); % get the center of the node which the link connects to
+                    case 'output'
+                        order(ct) = obj.nodes(...
+                            obj.links(l).getOutput()).getCenter(); % get the center of the node which the link connects to
+                end
+                ct = ct + 1;
+            end
+            [~, idx] = sort(order);
+            
+            sorted_links = links(idx);
+        end
+    end
+end
+
+% Move this to LinkObject later
+%         function drawSimpleLink(obj, link_id) % If you prefer linear links
+%             modelfun = @(x, slope, intercept) slope * x + intercept;
+%
+%             slope = obj.links(link_id).getVertex(4, 'input') - obj.links(link_id).getVertex(4, 'output');
+%             intercept = [obj.links(link_id).getVertex(3, 'output'), obj.links(link_id).getVertex(4, 'output')];
+%             x = linspace(obj.nodes(obj.links(link_id).getInput()).getLevel(), obj.nodes(obj.links(link_id).getOutput()).getLevel(), 100); % Get the hierarchical levels of the nodes which these connect to
+%
+%             y1 = modelfun(x, slope, intercept(1)) - x(1) * slope; % The subtraction is to account for the fact that it's not "relative" but absolute lines, so they get more offset as you move right
+%             y2 = modelfun(x, slope, intercept(2)) - x(1) * slope;
+%
+%             patch([x, fliplr(x)], [y1, fliplr(y2)], [0.5 0.5 0.5], 'LineStyle', 'none', 'FaceAlpha', 0.5)
+%
+%         end

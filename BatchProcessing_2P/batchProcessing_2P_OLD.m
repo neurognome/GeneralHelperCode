@@ -2,7 +2,6 @@ function batchProcessing_2P_OLD
 %what you run
 batch_type = questdlg('What are you running','Batch Type','A_ProcessTimeSeries','C_ExtractDFF','A_ProcessTimeSeries');
 autorun_flag = 1
-
 if autorun_flag %& strcmp(batch_type,'A_ProcessTime_Series')
     % autorun:
     switch batch_type
