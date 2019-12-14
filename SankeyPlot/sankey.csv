@@ -1,0 +1,10 @@
+Source,Target,Value
+Jane Salary,Income,"50,000"
+Joe Salary,Income,"45,000"
+Inheritance,Income,16800
+Income,Tax,8000
+Income,Expenses,"97,000"
+Expenses,Mortage,"43,200"
+Expenses,School Fees,"12,000"
+Expenses,Food,"35,000"
+Income,Savings,"6,800"
