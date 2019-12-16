@@ -21,6 +21,7 @@ classdef SankeyPlot < handle
         function obj = SankeyPlot(data)
             obj.parseInputs(data)
             figure
+            set(gca, 'XColor', 'none')
         end
         
         function parseInputs(obj, input)
@@ -46,7 +47,7 @@ classdef SankeyPlot < handle
             
             numberized_nodes(:, 3) = cat(1, input{:, 3});
             
-           
+            
             
             %% Determine the node hierarchy
             node_hierarchy = zeros(1, n_nodes);
@@ -71,8 +72,8 @@ classdef SankeyPlot < handle
                 end
             end
             
-             %% Determine the amounts for each node
-             
+            %% Determine the amounts for each node
+            
             
             % Clean this up... especially the "else" portion
             amounts = zeros(1, n_nodes);
@@ -160,30 +161,6 @@ classdef SankeyPlot < handle
                 % other
                 
                 
-                %% Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
-                %                     unique_previous_centers = unique(previous_node_centers); % Not all nodes are from the same input, so separate based on input first
-                %                     for ii = 1:length(unique_previous_centers)
-                %                         is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
-                %                         center = zeros(1, length(is_grouped));
-                %                         ct = 1;
-                %                         for node = nodes_in_hierarchy(is_grouped)
-                %                             center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
-                %                             ct = ct + 1;
-                %                         end
-                %                         [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
-                %                         [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
-                %                         group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
-                %                             (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
-                %                         shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
-                %                         center(is_grouped) = center(is_grouped) + shift; % Perform the shift
-                %
-                %                         ct = 1;
-                %                         for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
-                %                             obj.nodes(node).setCenter(center(ct));
-                %                             ct = ct+1;
-                %                         end
-                %                     end
-                %
                 % Use all the information to finally set the vertices
                 for node = nodes_in_hierarchy
                     obj.nodes(node).generateVertices();
@@ -191,20 +168,35 @@ classdef SankeyPlot < handle
                 
                 %Final step to adjust the spacing, run 10X to ensure no collisions lol
                 if numel(nodes_in_hierarchy) > 1
-                    for ii = 1:5 % Because I don't know how to do recursion...
-                    obj.spaceNodes(nodes_in_hierarchy);
+                    for ii = 1:50 % Because I don't know how to do recursion...
+                        obj.spaceNodes(nodes_in_hierarchy);
+                    end
+                end
+                obj.alignNodeGroups(nodes_in_hierarchy);
+            end
+            
+            % Here we see if any nodes are directly aligned with other nodes and shift them if so...
+            % This isn't perfect, but I don't have the foresight to generate data to break this... so I'll use it until it
+            % stops working right, then i'll come back and fix this
+            for i_node = 1:length(obj.nodes)
+                center = obj.nodes(i_node).getCenter();
+                if i_node ~= 1 % First node no shift
+                    if center == obj.nodes(i_node - 1).getCenter()
+                        span = obj.nodes(i_node-1).getVertex(4) - obj.nodes(i_node-1).getVertex(3);
+                        obj.nodes(i_node - 1).setCenter(center - span/2);
+                        obj.nodes(i_node).setCenter(center + span/2); % randomly shift
+                        obj.nodes(i_node).generateVertices();
+                        obj.nodes(i_node - 1).generateVertices();
                     end
                 end
                 
-                
-                
-                %                 end
             end
             
             % Setting colors for our objects
             obj.setNodeColors(); % Not ideal, but we need to set the colors here because the links are dependent on the nodes
             obj.setLinkColors();
         end
+        
         
         function calculateConnectionPoints(obj)
             % The purpose of this function is to calculate input (left) and output (right) connection points for each node
@@ -223,7 +215,6 @@ classdef SankeyPlot < handle
             for label = obj.labels
                 label.draw();
             end
-            
         end
         
         function createLinks(obj)
@@ -241,7 +232,31 @@ classdef SankeyPlot < handle
         
         % these are for updating and changing the graph... doesn't work right now (need a separate version that sets then
         % replots
+        
+        function changeLinkColor(obj, color)
+            obj.setLinkColors(color)
+            obj.replot();
+        end
+        
+        function changeNodeColors(obj, color, update_links)
+            if nargin < 3 || isempty(update_links)
+                update_links = false;
+            end
+            obj.setNodeColors(color)
+            obj.replot();
+            
+            if update_links
+                obj.setLinkColors();
+                obj.replot();
+            end
+        end
+    end
+    
+    
+    methods (Access = protected)
+        
         function setLinkColors(obj, color)
+            % actually changing the link colors
             for link = obj.links
                 if ~exist('color', 'var') %Nothing provided
                     link.setColor(obj.generateColor(link)); % can't be done in the link object, because requires node information
@@ -252,20 +267,58 @@ classdef SankeyPlot < handle
         end
         
         function setNodeColors(obj, color)
+            % Actually changing the node colors
             if nargin < 2 || isempty(color)
                 color = lines(length(obj.nodes)); % Default
             end
             
-            if size(color, 1) == 1 % Single color provided
-                color = repmat(color, 2, length(obj.nodes));
+            if size(color, 1) < length(obj.nodes) % Single color provided
+                fprintf('You gave %d colors, but there are %d nodes, repeating last color\n', ...
+                    size(color, 1), length(obj.nodes))
+                for ii = 1:(length(obj.nodes) - size(color, 1))
+                    color = [color; color(end, :)];
+                end
             end
             for i_node = 1:length(obj.nodes)
                 obj.nodes(i_node).setColor(color(i_node, :))
             end
         end
-    end
-    
-    methods (Access = protected)
+        
+        function replot(obj)
+            cla;
+            obj.createLinks();
+            obj.createNodes();
+            obj.createLabels();
+        end
+        
+        function alignNodeGroups(obj, nodes)
+            % This function aligns all the nodes in the hierarchy to the "midline" of the graph, so the graph doesn't just
+            % keep shifting in one direction
+            persistent graph_mid_point
+            current_level = obj.nodes(nodes(1)).getLevel();
+            ct = 1;
+            lo_temp = zeros(1, length(nodes));
+            hi_temp = zeros(1, length(nodes));
+            for node = nodes
+                lo_temp(ct) = obj.nodes(node).getVertex(3);
+                hi_temp(ct) = obj.nodes(node).getVertex(4);
+                ct = ct + 1;
+            end
+            lo = min(lo_temp);
+            hi = max(hi_temp);
+            mid_point = (lo + hi) / 2 + lo;
+            
+            if current_level == 1
+                graph_mid_point = mid_point;
+            else
+                shift = mid_point - graph_mid_point;
+                for node = nodes
+                    obj.nodes(node).setCenter(obj.nodes(node).getCenter() - shift);
+                    obj.nodes(node).generateVertices();
+                end
+            end
+        end
+        
         function spaceNodes(obj, nodes)
             % To space the nodes to meet the predefined spacing
             % To do: change the spacing method so it's not just pushed in one direction every time
@@ -367,7 +420,26 @@ classdef SankeyPlot < handle
     end
     
     methods (Static = true)
-        function data = processCSV(fn)
+        function data = readJSON(fn)
+            if nargin < 1 || isempty(fn)
+                fn = uigetfile('.json');
+            end
+            json_struct = jsondecode(fileread(fn));
+            node_lookup = struct2cell(json_struct.nodes);
+            
+            link_array = struct2cell(json_struct.links);
+            
+            data = cell(size(link_array));
+            for i_col = 1:size(data, 2)
+                data{1, i_col} = node_lookup{2, link_array{1, i_col} + 1}; % Because MATLAB is 1 based
+                data{2, i_col} = node_lookup{2, link_array{2, i_col} + 1};
+                data{3, i_col} = link_array{3, i_col};
+            end
+            data = data'; % Transpose
+            
+        end
+        
+        function data = readCSV(fn)
             if nargin < 1 || isempty(fn)
                 fn = uigetfile('.csv');
             end
@@ -379,7 +451,31 @@ classdef SankeyPlot < handle
     end
 end
 
+%% Deprecated code
 
+%                 % Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
+%                 unique_previous_centers = unique(previous_node_centers); % Not all nodes are from the same input, so separate based on input first
+%                 for ii = 1:length(unique_previous_centers)
+%                     is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
+%                     center = zeros(1, length(is_grouped));
+%                     ct = 1;
+%                     for node = nodes_in_hierarchy(is_grouped)
+%                         center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
+%                         ct = ct + 1;
+%                     end
+%                     [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
+%                     [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
+%                     group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
+%                         (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
+%                     shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
+%                     center(is_grouped) = center(is_grouped) + shift; % Perform the shift
+%
+%                     ct = 1;
+%                     for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
+%                         obj.nodes(node).setCenter(center(ct));
+%                         ct = ct+1;
+%                     end
+%                 end
 
 % Move this to LinkObject later
 %         function drawSimpleLink(obj, link_id) % If you prefer linear links

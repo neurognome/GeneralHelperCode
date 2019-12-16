@@ -1,9 +1,7 @@
 % or you can read the optional one
-data = SankeyPlot.readJSON(); % OR
-data = SankeyPlot.readCSV(); % OR
-load('sankey.mat'); % Already in the proper format
-
-
+data = SankeyPlot.readJSON();
+data = SankeyPlot.readCSV();
+data = importdata('sankey.m'); % Already in the proper format
 % The sankey plot works simply, all you need to do is 
 skp = SankeyPlot(data);
 skp.preprocessData();
