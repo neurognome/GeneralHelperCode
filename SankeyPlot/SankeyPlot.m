@@ -238,7 +238,7 @@ classdef SankeyPlot < handle
             obj.replot();
         end
         
-        function changeNodeColors(obj, color, update_links)
+        function changeNodeColor(obj, color, update_links)
             if nargin < 3 || isempty(update_links)
                 update_links = false;
             end
