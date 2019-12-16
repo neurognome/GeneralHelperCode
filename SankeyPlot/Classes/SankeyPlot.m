@@ -425,14 +425,14 @@ classdef SankeyPlot < handle
                 fn = uigetfile('.json');
             end
             json_struct = jsondecode(fileread(fn));
-            node_lookup = struct2cell(json_struct.nodes);
+            node_lookup = {json_struct.nodes};
             
             link_array = struct2cell(json_struct.links);
             
             data = cell(size(link_array));
             for i_col = 1:size(data, 2)
-                data{1, i_col} = node_lookup{2, link_array{1, i_col} + 1}; % Because MATLAB is 1 based
-                data{2, i_col} = node_lookup{2, link_array{2, i_col} + 1};
+                data{1, i_col} = node_lookup{link_array{1, i_col} + 1}; % Because MATLAB is 1 based
+                data{2, i_col} = node_lookup{link_array{2, i_col} + 1};
                 data{3, i_col} = link_array{3, i_col};
             end
             data = data'; % Transpose
