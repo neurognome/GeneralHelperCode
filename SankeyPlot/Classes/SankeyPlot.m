@@ -49,30 +49,35 @@ classdef SankeyPlot < handle
             
             
             
-            % Determine the node hierarchy
+            %% Determine the node hierarchy through some beautiful spaghetti
             node_hierarchy = zeros(1, n_nodes);
             
-            level = 1;
-            for ii = 1: n_nodes
-                
-                if ii == 1 % the first run is a little different
-                    for i_node = 1:n_nodes
-                        if sum(numberized_nodes(:, 2) == i_node) == 0
-                            node_hierarchy(i_node) = level;
-                        end
-                    end
-                    level = level + 1;
-                else
-                    prev_nodes = find(node_hierarchy == max(node_hierarchy)); % Find all nodes that are equal to the previous high value
-                    for jj = 1:length(prev_nodes) % iterate through all possible nodes that were previously highest
-                        next_node = numberized_nodes(numberized_nodes(:, 1) == prev_nodes(jj), 2); % Get all nodes that match current highest node
-                        node_hierarchy(next_node) = level; % Assign level
-                    end
-                    level = level + 1; % After going through all possible node (names) of the same hierarchy, move on and increment level
+            % Find all nodes w/o inputs, classify them as level 1
+            for i_node = 1:n_nodes
+                if sum(numberized_nodes(:, 2) == i_node) == 0
+                    node_hierarchy(i_node) = 1;
                 end
             end
             
+            % Go through a couple times and find nodes that build on previous level, moving up the chain
+            for rep = 1:10
+                for ii = 1:n_nodes
+                    prev_nodes = numberized_nodes(numberized_nodes(:, 2) == ii, 1);
+                    prev_levels = unique(node_hierarchy(prev_nodes)); % all hierarchies of previous nodes
+                    if ~isempty(prev_levels)
+                        node_hierarchy(ii) = max(prev_levels) + 1; % Eventually, we'll find al evel 2 node...
+                    end
+                end
+            end
             
+            % Find all nodes without outputs and classify them as level max
+            for i_node = 1:n_nodes
+                if sum(numberized_nodes(:, 1) == i_node) == 0
+                    node_hierarchy(i_node) = max(node_hierarchy);
+                end
+            end
+               
+          
             %% Determine the amounts for each node            
             % Clean this up... especially the "else" portion
             amounts = zeros(1, n_nodes);
@@ -157,11 +162,7 @@ classdef SankeyPlot < handle
                 end
                
                 % These steps are group by group dependent, so are run afterwards, moving the centers away from each
-                % other
-                
-                
-                %% FIX SPAICNG ISSUES...
-                
+                % other      
                 
                 % Use all the information to finally set the vertices
                 for node = nodes_in_hierarchy
@@ -172,7 +173,7 @@ classdef SankeyPlot < handle
                 if numel(nodes_in_hierarchy) > 1 
                    obj.spaceNodes(nodes_in_hierarchy);
                 end
-                %obj.alignNodeGroups(nodes_in_hierarchy);
+                obj.alignNodeGroups(nodes_in_hierarchy);
             end
             
             % Here we see if any nodes are directly aligned with other nodes and shift them if so...
