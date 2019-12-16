@@ -24,4 +24,7 @@ skp.createNodes();
 skp.createLabels();
 ```
 
+Output:
 ![alt text](Example_Data/example_output.png "sankey plot example")
+
+From here you can change node and link colors as you please
