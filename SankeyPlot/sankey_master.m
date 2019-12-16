@@ -5,6 +5,8 @@
 
 %data = SankeyPlot.readJSON(); % OR
 %data = SankeyPlot.readCSV(); % OR
+addpath('Example_Data')
+addpath('Classes')
 load('sankey.mat'); % Already in the proper format
 
 
