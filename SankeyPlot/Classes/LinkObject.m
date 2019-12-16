@@ -35,7 +35,7 @@ classdef LinkObject < GraphObject
         function draw(obj)   
             % Draw this link
          
-            sigmoid_sharpness = 5; % > 5 or else you lose the asymptotes
+            sigmoid_sharpness = 10; % > 5 or else you lose the asymptotes
             modelfun = @(x, a, offset, shift)  a * ((tanh(sigmoid_sharpness * (x - 1.5 - (shift - 1))) + 1) * 0.5) + offset; %10 defines sharpness
             
             x = linspace(mean(obj.output_vertices([1, 2])), mean(obj.input_vertices([1, 2]))); % Create a smooth x vector

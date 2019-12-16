@@ -49,7 +49,7 @@ classdef SankeyPlot < handle
             
             
             
-            %% Determine the node hierarchy
+            % Determine the node hierarchy
             node_hierarchy = zeros(1, n_nodes);
             
             level = 1;
@@ -72,9 +72,8 @@ classdef SankeyPlot < handle
                 end
             end
             
-            %% Determine the amounts for each node
             
-            
+            %% Determine the amounts for each node            
             % Clean this up... especially the "else" portion
             amounts = zeros(1, n_nodes);
             for i_node = 1:n_nodes
@@ -161,45 +160,19 @@ classdef SankeyPlot < handle
                 % other
                 
                 
+                %% FIX SPAICNG ISSUES...
+                
+                
                 % Use all the information to finally set the vertices
                 for node = nodes_in_hierarchy
                     obj.nodes(node).generateVertices();
                 end
                 
                 %Final step to adjust the spacing, run 10X to ensure no collisions lol
-                if numel(nodes_in_hierarchy) > 1
-                    for ii = 1:50 % Because I don't know how to do recursion...
-                        obj.spaceNodes(nodes_in_hierarchy);
-                    end
+                if numel(nodes_in_hierarchy) > 1 
+                   obj.spaceNodes(nodes_in_hierarchy);
                 end
-                 %Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
-                % I think here's it's getting info from the wrong groups....
-%                  unique_previous_centers = unique(previous_node_centers, 'stable'); % Not all nodes are from the same input, so separate based on input first
-%                 for ii = 1:length(unique_previous_centers)
-%                     is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
-%                     center = zeros(1, length(is_grouped));
-%                     ct = 1;
-%                     for node = nodes_in_hierarchy(is_grouped)
-%                         center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
-%                         ct = ct + 1;
-%                     end
-%                     
-%                     [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
-%                     [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
-%                     group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
-%                         (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
-%                     shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
-%                     center(is_grouped) = center(is_grouped) + shift; % Perform the shift
-% 
-%                     ct = 1;
-%                     for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
-%                         obj.nodes(node).setCenter(center(ct));
-%                         obj.nodes(node).generateVertices();
-%                         ct = ct+1;
-%                     end
-%                 end
-
-                 obj.alignNodeGroups(nodes_in_hierarchy);
+                %obj.alignNodeGroups(nodes_in_hierarchy);
             end
             
             % Here we see if any nodes are directly aligned with other nodes and shift them if so...
@@ -347,6 +320,49 @@ classdef SankeyPlot < handle
         end
         
         function spaceNodes(obj, nodes)
+            ct = 1;
+            for i_node = 1:length(nodes)
+               % centers(i_node) = obj.nodes(nodes(i_node)).getCenter();
+                obj.nodes(nodes(i_node)).setCenter(obj.nodes(nodes(i_node)).getCenter() + (ct * obj.spacing));
+                obj.nodes(nodes(i_node)).generateVertices();
+                ct = ct + 1;
+            end
+            
+        end
+        
+        function spaceNodesoldold(obj, nodes)
+            pool = zeros(length(nodes), 4);
+            ct = 1;
+            for node = nodes
+                pool(ct, :) = obj.nodes(node).getVertex(); % Get all the nodes in the current pool
+                ct = ct+1;
+            end
+            
+            for i_node = 1:length(nodes) % Detect collision and shift
+                current_bounds = pool(i_node, [3, 4]);
+                other_bounds = pool(1:end ~= i_node, [3, 4]);
+                shift = 0;
+                
+                for ii = 1:size(other_bounds, 1)
+                    %Check collision
+                    if current_bounds(1) >= other_bounds(ii, 1) && current_bounds(1) <= other_bounds(ii, 2)
+                        % Lower bound is touching
+                        shift = other_bounds(ii, 2) - current_bounds(1);
+                        obj.nodes(nodes(i_node)).setCenter(obj.nodes(nodes(i_node)).getCenter() + shift + obj.spacing);
+                        
+                    elseif current_bounds(2) >= other_bounds(ii, 1) && current_bounds(2) <= other_bounds(ii, 2)
+                        % Upper bound is touching
+                        shift = current_bounds(2) - other_bounds(ii, 1);
+                        obj.nodes(nodes(i_node)).setCenter(obj.nodes(nodes(i_node)).getCenter() + shift + obj.spacing);
+                        
+                    end
+                end
+                
+                obj.nodes(nodes(i_node)).generateVertices();
+            end
+        end
+        
+        function spaceNodesOLD(obj, nodes)
             % To space the nodes to meet the predefined spacing
             % To do: change the spacing method so it's not just pushed in one direction every time
             pool = zeros(length(nodes), 4);
@@ -360,7 +376,7 @@ classdef SankeyPlot < handle
             for i_node = 1:length(nodes) % Detect collision and shift
                 lo = pool(i_node, 3);
                 
-                i_collision = (pool(1:end ~= i_node, [3, 4]) - lo) < 0.1; % weird issue with rounding, adding some tolerance
+                i_collision = (pool(1:end ~= i_node, [3, 4]) - lo) < 0.01; % weird issue with rounding, adding some tolerance
                 
                 for ii = 1:size(i_collision, 1)
                     if any(i_collision(ii, :))
@@ -480,8 +496,9 @@ end
 
 %% Deprecated code
 
-%                 % Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
-%                 unique_previous_centers = unique(previous_node_centers); % Not all nodes are from the same input, so separate based on input first
+  %Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
+                % I think here's it's getting info from the wrong groups....
+%                  unique_previous_centers = unique(previous_node_centers, 'stable'); % Not all nodes are from the same input, so separate based on input first
 %                 for ii = 1:length(unique_previous_centers)
 %                     is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
 %                     center = zeros(1, length(is_grouped));
@@ -490,19 +507,22 @@ end
 %                         center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
 %                         ct = ct + 1;
 %                     end
+%                     
 %                     [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
 %                     [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
 %                     group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
 %                         (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
 %                     shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
 %                     center(is_grouped) = center(is_grouped) + shift; % Perform the shift
-%
+% 
 %                     ct = 1;
 %                     for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
 %                         obj.nodes(node).setCenter(center(ct));
+%                         obj.nodes(node).generateVertices();
 %                         ct = ct+1;
 %                     end
-%                 end
+%                 end-
+
 
 % Move this to LinkObject later
 %         function drawSimpleLink(obj, link_id) % If you prefer linear links

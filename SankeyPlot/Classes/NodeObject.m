@@ -52,6 +52,10 @@ classdef NodeObject < GraphObject
             end
         end
         
+        function setLevel(obj, level)
+            obj.level = level;
+        end
+        
         function setCenter(obj, center)
             obj.center = center;
         end
