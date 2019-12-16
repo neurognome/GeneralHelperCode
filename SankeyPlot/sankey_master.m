@@ -11,7 +11,6 @@ load('sankey.mat'); % Already in the proper format
 % The sankey plot works simply, all you need to do is 
 skp = SankeyPlot(data);
 skp.preprocessData();
-skp.calculateConnectionPoints;
 skp.createLinks();
 skp.createNodes();
 skp.createLabels();

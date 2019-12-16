@@ -195,19 +195,8 @@ classdef SankeyPlot < handle
             % Setting colors for our objects
             obj.setNodeColors(); % Not ideal, but we need to set the colors here because the links are dependent on the nodes
             obj.setLinkColors();
-        end
-        
-        
-        function calculateConnectionPoints(obj)
-            % The purpose of this function is to calculate input (left) and output (right) connection points for each node
-            for i_node = 1:length(obj.nodes)
-                % This also sorts the links. Finds all the links connected to the node on either side
-                input_links = obj.findLinks(i_node, 'input');
-                output_links = obj.findLinks(i_node, 'output');
-                
-                obj.setLinkVertices(input_links, i_node, 'input')
-                obj.setLinkVertices(output_links, i_node, 'output')
-            end
+            
+            obj.calculateConnectionPoints();
         end
         
         % Creating each portion of the graph
@@ -254,6 +243,17 @@ classdef SankeyPlot < handle
     
     
     methods (Access = protected)
+        function calculateConnectionPoints(obj)
+            % The purpose of this function is to calculate input (left) and output (right) connection points for each node
+            for i_node = 1:length(obj.nodes)
+                % This also sorts the links. Finds all the links connected to the node on either side
+                input_links = obj.findLinks(i_node, 'input');
+                output_links = obj.findLinks(i_node, 'output');
+                
+                obj.setLinkVertices(input_links, i_node, 'input')
+                obj.setLinkVertices(output_links, i_node, 'output')
+            end
+        end
         
         function setLinkColors(obj, color)
             % actually changing the link colors
