@@ -138,8 +138,8 @@ classdef SankeyPlot < handle
                 previous_ceil = 0;
                 ct = 1;
                 for node = nodes_in_hierarchy
-                    previous_node = obj.nodes(node).getInput(); % This is not the best way to do this, because "input" is a property of the link, not the node... but this will work for new
-                    if length(previous_node) == 1 % only one previous
+                   previous_node = obj.nodes(node).getInput(); % This is not the best way to do this, because "input" is a property of the link, not the node... but this will work for new
+                   if length(previous_node) == 1 % only one previous
                         previous_node_centers(ct) = obj.nodes(previous_node).getCenter;
                     else % Multiple previous nodes
                         temp = zeros(1, length(previous_node));
@@ -156,7 +156,7 @@ classdef SankeyPlot < handle
                     previous_ceil = sum(node_values(1:ct)); % Running total to make sure it's in the right place
                     ct = ct + 1;
                 end
-                
+               
                 % These steps are group by group dependent, so are run afterwards, moving the centers away from each
                 % other
                 
@@ -172,7 +172,34 @@ classdef SankeyPlot < handle
                         obj.spaceNodes(nodes_in_hierarchy);
                     end
                 end
-                obj.alignNodeGroups(nodes_in_hierarchy);
+                 %Adjust nodes to align groups to the previous node, not sure if we need this anymore, we'll see...
+                % I think here's it's getting info from the wrong groups....
+%                  unique_previous_centers = unique(previous_node_centers, 'stable'); % Not all nodes are from the same input, so separate based on input first
+%                 for ii = 1:length(unique_previous_centers)
+%                     is_grouped = previous_node_centers == unique_previous_centers(ii); % Current input node that are grouped together (touching)
+%                     center = zeros(1, length(is_grouped));
+%                     ct = 1;
+%                     for node = nodes_in_hierarchy(is_grouped)
+%                         center(ct) = obj.nodes(node).getCenter(); % Get centers of nodes in group
+%                         ct = ct + 1;
+%                     end
+%                     
+%                     [bottom_center, bot_idx] = min(center(is_grouped)); % Following lines are to calculate how much to move the center
+%                     [top_center, top_idx] = max(center(is_grouped)); % Get the VALUE and the NODE_ID of the top and bottom nodes
+%                     group_center = ((top_center + node_values(top_idx)/2) - (bottom_center - node_values(bot_idx)/2)) / 2+ ...
+%                         (bottom_center - node_values(bot_idx)/2); % span of the group / 2 and adjusted for bottom
+%                     shift = unique_previous_centers(ii) - group_center; % Shift the center of each group (same input) to the center of the previous node (lining them up)
+%                     center(is_grouped) = center(is_grouped) + shift; % Perform the shift
+% 
+%                     ct = 1;
+%                     for node = nodes_in_hierarchy(is_grouped) % After shifting, re-set the center
+%                         obj.nodes(node).setCenter(center(ct));
+%                         obj.nodes(node).generateVertices();
+%                         ct = ct+1;
+%                     end
+%                 end
+
+                 obj.alignNodeGroups(nodes_in_hierarchy);
             end
             
             % Here we see if any nodes are directly aligned with other nodes and shift them if so...
@@ -333,7 +360,7 @@ classdef SankeyPlot < handle
             for i_node = 1:length(nodes) % Detect collision and shift
                 lo = pool(i_node, 3);
                 
-                i_collision = (pool(1:end ~= i_node, [3, 4]) - lo) < 0.01; % weird issue with rounding, adding some tolerance
+                i_collision = (pool(1:end ~= i_node, [3, 4]) - lo) < 0.1; % weird issue with rounding, adding some tolerance
                 
                 for ii = 1:size(i_collision, 1)
                     if any(i_collision(ii, :))
@@ -425,7 +452,7 @@ classdef SankeyPlot < handle
                 fn = uigetfile('.json');
             end
             json_struct = jsondecode(fileread(fn));
-            node_lookup = {json_struct.nodes};
+            node_lookup = {json_struct.nodes.name};
             
             link_array = struct2cell(json_struct.links);
             

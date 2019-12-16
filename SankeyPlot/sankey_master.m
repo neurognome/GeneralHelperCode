@@ -3,7 +3,7 @@
 
 % There's some test data in the Example_Data folder
 
-%data = SankeyPlot.readJSON(); % OR
+data = SankeyPlot.readJSON(); % OR
 %data = SankeyPlot.readCSV(); % OR
 addpath('Example_Data')
 addpath('Classes')
