@@ -24,4 +24,4 @@ skp.createNodes();
 skp.createLabels();
 ```
 
-![alt text](https://github.com/kevinksit/GeneralHelperCode/tree/master/SankeyPlot/Example_Data/example_output.png "sankey plot example")
+![alt text](Example_Data/example_output.png "sankey plot example")
