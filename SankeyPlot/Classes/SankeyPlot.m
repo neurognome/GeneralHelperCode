@@ -7,8 +7,9 @@ classdef SankeyPlot < handle
     
     % Currently no error checking... so be careful
     
+    % Things to improve: clustering nodes based on their outputs/inputs will help large plots look much cleaner...
     % Written 14Dec2019 KS
-    % Updated
+    % Updated 16Dec2019 KS
     
     properties
         spacing = 0.05; % 5% of max node size
