@@ -3,7 +3,7 @@ classdef EyeTracker < handle
         movie
         cropped_movie
         eye_roi
-        clean_method 
+        clean_method
         
         pupil struct
     end
@@ -43,7 +43,7 @@ classdef EyeTracker < handle
                         previous_frame = find(~is_dropped_frame(1:frame - 1), 1, 'last'); % previous undropped frame
                         next_frame = find(~is_dropped_frame(frame + 1:end), 1, 'first') + frame; % next undropped frame
                         
-                        obj.movie(:, :, frame) = uint8(mean(cat(3, obj.movie(:, :, previous_frame), obj.movie(:, :, next_frame)), 3));                  
+                        obj.movie(:, :, frame) = uint8(mean(cat(3, obj.movie(:, :, previous_frame), obj.movie(:, :, next_frame)), 3));
                     end
             end
         end
@@ -89,7 +89,7 @@ classdef EyeTracker < handle
             end
             obj.pupil = pupil; % assignment issues if it's directly done above
         end
-  
+        
         function checkPerformance(obj, frames, playback_speed)
             if nargin < 2 || isempty(frames)
                 frames = 1:size(obj.cropped_movie, 3);
@@ -109,10 +109,10 @@ classdef EyeTracker < handle
             end
             
             pupil_eccentricity = [obj.pupil(frames).Eccentricity];
-           
-            % Instantiate figure and prepare axes 
+            
+            % Instantiate figure and prepare axes
             figure('Units', 'normalized', 'Position', [0.2750 0.02 0.45 0.9])
-           
+            
             tick_values = floor(linspace(1, length(frames), 7));
             
             % preparing all the axes, probably a better way to do this.. but oh well
@@ -155,7 +155,7 @@ classdef EyeTracker < handle
                 subplot(5, 2, 1:6)
                 image(obj.cropped_movie(:, :, frame) * (64/255)) % scaling factor to get it in the right range
                 colormap gray
-                       axis off
+                axis off
                 axis image
                 title(sprintf('Frame # %d', frame))
                 obj.drawPupilBoundary(frame);
@@ -172,12 +172,15 @@ classdef EyeTracker < handle
     end
     
     methods (Access = protected)
-                function idx = pupilChooser(obj, temp)
+        function idx = pupilChooser(obj, temp)
+            figure
             imagesc(obj.cropped_movie(:, :, 1));
             title('Choose center of pupil with mouse, hit Enter key when finished')
             colormap gray
+            axis image
+            axis off
             [x, y] = getpts();
-            close 
+            close
             
             candidates = zeros(1, length(temp));
             for ii = 1:length(temp)
@@ -191,7 +194,7 @@ classdef EyeTracker < handle
             %previous pupil positions
             candidates = zeros(1, length(current_pupil));
             for ii = 1:length(current_pupil)
-            candidates(ii) = pdist2(current_pupil(ii).Centroid, working_pupil(end).Centroid);
+                candidates(ii) = pdist2(current_pupil(ii).Centroid, working_pupil(end).Centroid);
             end
             [~, idx] = min(candidates);
             % additional checks... later
@@ -211,7 +214,7 @@ classdef EyeTracker < handle
                 sprintf('Pupil position: [%0.2f, %0.2f]', pupil_position(1), pupil_position(2)),...
                 'Color', 'red',...
                 'FontSize', 12)
-                       
+            
         end
         
         function drawPupilBoundary(obj, frame)
@@ -242,10 +245,13 @@ classdef EyeTracker < handle
             fprintf('Choose your bounding box for the mouse eye...\n')
             figure
             imagesc(mean(obj.movie, 3));
+            title('Use mouse to drag a rectangle over the mouse eye')
+            axis off
+            axis image
             colormap gray
             eye_rectangle = imrect();
             obj.eye_roi = eye_rectangle.createMask();
-            close 
+            close
         end
     end
     

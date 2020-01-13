@@ -1,3 +1,9 @@
+% Things ot owrk on
+% I wouldn't particularly trust the x and y position, because they're arbitrarily in reference to the edges of the frame...
+% the mouse eye is probably better referenc. We'll take the football shape, then get the centroid and axes, the plot the x
+% and y movement as deviation from these reference points
+
+
 % Instantiate the class
 eye = EyeTracker();
 
