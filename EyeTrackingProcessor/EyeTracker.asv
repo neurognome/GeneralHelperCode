@@ -213,7 +213,7 @@ classdef EyeTracker < handle
             
             subplot(4, 3, 9)
             pupil_x = animatedline;
-            axis([1, length(frames), minmax(obj.center_of_gaze(2, :))]);
+            axis([1, length(frames), minmax(obj.center_of_gaze(2, :)')]);
             ylabel('x position')
             xticks(tick_values)
             xticklabels(frames(tick_values))
@@ -222,7 +222,7 @@ classdef EyeTracker < handle
             % pupil y tracking
             subplot(4, 3, 12)
             pupil_y = animatedline;
-            axis([1, length(frames), minmax(obj.center_of_gaze(1, :))]);
+            axis([1, length(frames), minmax(obj.center_of_gaze(1, :)')]);
             ylabel('y position')
             xticks(tick_values)
             xticklabels(frames(tick_values))

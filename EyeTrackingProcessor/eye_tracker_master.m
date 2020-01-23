@@ -19,5 +19,10 @@ eye.cropMovie();
 % Detect the pupil
 eye.detectPupil();
 
+
+eye.calibrate()
+eye.calculateCoG();
+
 % Plot over time to check performance of detection
 eye.checkPerformance()
+
