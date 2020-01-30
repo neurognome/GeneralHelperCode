@@ -28,5 +28,14 @@ classdef ArduinoLEDController < ArduinoController
         function off(obj)
             obj.pin.setValue(0);
         end  
+
+        function switch(obj)
+            current_val = obj.pin.getValue();
+            if current_val == 1
+                obj.pin.setValue(0);
+            else
+                obj.pin.setValue(1);
+            end
+        end
     end
 end
