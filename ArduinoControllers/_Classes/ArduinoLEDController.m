@@ -4,14 +4,17 @@ classdef ArduinoLEDController < ArduinoController
     end
     
     methods
-        function obj = ArduinoLEDController(port, pin)
-            if nargin < 1 || isempty(port)
+        function obj = ArduinoLEDController(ptr, port, pin)
+            if nargin < 1 || isempty(ptr)
+                ptr = [];
+            end
+            if nargin < 2 || isempty(port)
                 port = [];
             end
             
-            obj = obj@ArduinoController(port);
+            obj = obj@ArduinoController(ptr, port);
             
-            if nargin < 2 || isempty(pin)
+            if nargin < 3 || isempty(pin)
                 pin = obj.inputPins('light control');
             end
             

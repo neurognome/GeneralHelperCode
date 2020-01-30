@@ -25,13 +25,17 @@ classdef ArduinoServoController < ArduinoController
     end
     
     methods (Access = public)
-        function obj = ArduinoServoController(port, servo_pin)
-            if nargin < 1 || isempty(port)
+        function obj = ArduinoServoController(ptr, port, servo_pin)
+            if nargin < 1 || isempty(ptr)
+                ptr = [];
+            end
+
+            if nargin < 2 || isempty(port)
                 port = [];
             end
-            obj = obj@ArduinoController(port);
+            obj = obj@ArduinoController(ptr, port);
             
-            if nargin < 2 || isempty(servo_pin)
+            if nargin < 3 || isempty(servo_pin)
                 servo_pin = obj.inputPins('servo');
             end
 
