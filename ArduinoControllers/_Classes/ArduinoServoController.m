@@ -10,7 +10,7 @@ classdef ArduinoServoController < ArduinoController
         MAX_FORWARD = 0.8;
         MAX_BACKWARD = 0.3;
         MIN_STOP = 0.45;
-        MAX_STOP = 0.513;
+        MAX_STOP = 0.47;
         SERVO_PIN = 'D4';
         ARDUINO_PORT = 'COM5';
         
