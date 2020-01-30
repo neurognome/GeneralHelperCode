@@ -36,7 +36,7 @@ classdef ArduinoServoController < ArduinoController
             obj = obj@ArduinoController(ptr, port);
             
             if nargin < 3 || isempty(servo_pin)
-                servo_pin = obj.inputPins('servo');
+                servo_pin = obj.inputPins({'servo'});
             end
 
             obj.servo_ptr = obj.arduino_ptr.servo(servo_pin,...

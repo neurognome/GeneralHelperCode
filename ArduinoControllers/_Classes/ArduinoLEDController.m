@@ -15,7 +15,7 @@ classdef ArduinoLEDController < ArduinoController
             obj = obj@ArduinoController(ptr, port);
             
             if nargin < 3 || isempty(pin)
-                pin = obj.inputPins('light control');
+                pin = obj.inputPins({'light control'});
             end
             
             obj.pin = WritePin(pin{1}, obj.arduino_ptr);

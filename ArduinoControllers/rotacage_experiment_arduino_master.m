@@ -1,9 +1,9 @@
 % set up arduinos
 
 
-s = ServoController();
+s = ArduinoServoController();
 
-led = LEDController(s.arduino_ptr); % Pass the arduino pointer into here
+led = ArduinoLEDController(s.arduino_ptr); % Pass the arduino pointer into here
 
 % start experiment
 
