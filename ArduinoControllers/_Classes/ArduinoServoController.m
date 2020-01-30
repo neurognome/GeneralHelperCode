@@ -20,7 +20,6 @@ classdef ArduinoServoController < ArduinoController
     end
     
     properties (Access = public)
-        arduino_ptr
         servo_ptr
     end
     
