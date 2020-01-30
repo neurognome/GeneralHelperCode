@@ -3,7 +3,7 @@ classdef ArduinoController < handle
         arduino_ptr
     end
     methods
-        function obj = Controller(arduino_ptr, arduino_port)
+        function obj = ArduinoController(arduino_ptr, arduino_port)
             addpath('./Helpers') % Make sure these are included
             if nargin < 1 || ~isempty(arduino_ptr)
             	obj.arduino_ptr = arduino_ptr;
