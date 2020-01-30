@@ -10,9 +10,9 @@ classdef Pin < handle
     
     methods
         function obj = Pin(pin_ID, arduino_ptr)
-            obj.parsePinID(pin_ID);
             obj.pin_id = pin_ID;
             obj.arduino_ptr = arduino_ptr;
+            obj.parsePinID(pin_ID);
         end
         
         function parsePinID(obj, pin_ID)
