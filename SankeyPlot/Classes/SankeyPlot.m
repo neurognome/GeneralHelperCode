@@ -25,6 +25,13 @@ classdef SankeyPlot < handle
             set(gca, 'XColor', 'none')
         end
         
+        function autoRun(obj)
+            obj.preprocessData();
+            obj.createLinks();
+            obj.createNodes();
+            obj.createLabels();
+        end
+        
         function parseInputs(obj, input)
             % The purpose of this function is to take the input and do some preprocessing into useful formats and instantiate
             % all of our objects for later use
@@ -71,13 +78,13 @@ classdef SankeyPlot < handle
                 end
             end
             
-            % Find all nodes without outputs and classify them as level max
-            for i_node = 1:n_nodes
-                if sum(numberized_nodes(:, 1) == i_node) == 0
-                    node_hierarchy(i_node) = max(node_hierarchy);
-                end
-            end
-               
+%             % Find all nodes without outputs and classify them as level max
+%             for i_node = 1:n_nodes
+%                 if sum(numberized_nodes(:, 1) == i_node) == 0
+%                     node_hierarchy(i_node) = max(node_hierarchy);
+%                 end
+%             end
+%                
           
             %% Determine the amounts for each node            
             % Clean this up... especially the "else" portion
@@ -174,25 +181,25 @@ classdef SankeyPlot < handle
                 if numel(nodes_in_hierarchy) > 1 
                    obj.spaceNodes(nodes_in_hierarchy);
                 end
-                obj.alignNodeGroups(nodes_in_hierarchy);
+               % obj.alignNodeGroups(nodes_in_hierarchy);
             end
             
             % Here we see if any nodes are directly aligned with other nodes and shift them if so...
             % This isn't perfect, but I don't have the foresight to generate data to break this... so I'll use it until it
             % stops working right, then i'll come back and fix this
-            for i_node = 1:length(obj.nodes)
-                center = obj.nodes(i_node).getCenter();
-                if i_node ~= 1 % First node no shift
-                    if center == obj.nodes(i_node - 1).getCenter()
-                        span = obj.nodes(i_node-1).getVertex(4) - obj.nodes(i_node-1).getVertex(3);
-                        obj.nodes(i_node - 1).setCenter(center - span/2);
-                        obj.nodes(i_node).setCenter(center + span/2); % randomly shift
-                        obj.nodes(i_node).generateVertices();
-                        obj.nodes(i_node - 1).generateVertices();
-                    end
-                end
-                
-            end
+%             for i_node = 1:length(obj.nodes)
+%                 center = obj.nodes(i_node).getCenter();
+%                 if obj.nodes(i_node).getLevel() ~= 1 % First node no shift
+%                     if center == obj.nodes(i_node - 1).getCenter()
+%                         span = obj.nodes(i_node-1).getVertex(4) - obj.nodes(i_node-1).getVertex(3);
+%                         obj.nodes(i_node - 1).setCenter(center - span/2);
+%                         obj.nodes(i_node).setCenter(center + span/2); % randomly shift
+%                         obj.nodes(i_node).generateVertices();
+%                         obj.nodes(i_node - 1).generateVertices();
+%                     end
+%                 end
+%                 
+%             end
             
             % Setting colors for our objects
             obj.setNodeColors(); % Not ideal, but we need to set the colors here because the links are dependent on the nodes
@@ -296,6 +303,10 @@ classdef SankeyPlot < handle
         function alignNodeGroups(obj, nodes)
             % This function aligns all the nodes in the hierarchy to the "midline" of the graph, so the graph doesn't just
             % keep shifting in one direction
+            
+            % This isn't working properly. Instead af aligning to the midline of the graph, we'd rather have it aligned to
+            % the center of the input node.
+            % To do this, we'll need to find out which of the nodes in the hieracrhy share an input and group and align them
             persistent graph_mid_point
             current_level = obj.nodes(nodes(1)).getLevel();
             ct = 1;
@@ -322,7 +333,7 @@ classdef SankeyPlot < handle
         end
         
         function spaceNodes(obj, nodes)
-            ct = 1;
+            ct = 0;
             for i_node = 1:length(nodes)
                % centers(i_node) = obj.nodes(nodes(i_node)).getCenter();
                 obj.nodes(nodes(i_node)).setCenter(obj.nodes(nodes(i_node)).getCenter() + (ct * obj.spacing));
