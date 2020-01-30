@@ -3,13 +3,17 @@ classdef ArduinoController < handle
         arduino_ptr
     end
     methods
-        function obj = Controller(arduino_port)
+        function obj = Controller(arduino_ptr, arduino_port)
             addpath('./Helpers') % Make sure these are included
-            if nargin < 1 || isempty(arduino_port)
-                obj.arduino_ptr = arduino();
+            if nargin < 1 || isempty(arduino_ptr)
+            	obj.arduino_ptr = arduino_ptr;
             else
-                obj.arduino_ptr = arduino(arduino_port);
-            end
+	            if nargin < 2 || isempty(arduino_port)
+	                obj.arduino_ptr = arduino();
+	            else
+	                obj.arduino_ptr = arduino(arduino_port);
+	            end
+	        end
         end
         
         function pins = inputPins(obj, needed_pins)
