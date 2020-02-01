@@ -14,7 +14,7 @@ classdef StepperController < NIDAQController
     methods
         function obj = StepperController(lines)
             
-            obj = obj@NIDAQController(); % Call superclass constructor
+            obj = obj@NIDAQController(10000); % Call superclass constructor
             
             % Assign lines
             if nargin < 1 || isempty(lines)
@@ -66,7 +66,9 @@ classdef StepperController < NIDAQController
         
         function step(obj)
             obj.digitalWrite(obj.step_line, 1);
+            java.lang.Thread.sleep(0.001);
             obj.digitalWrite(obj.step_line, 0);
+            java.lang.Thread.sleep(0.001);
         end
         
         function setDirection(obj, direction)

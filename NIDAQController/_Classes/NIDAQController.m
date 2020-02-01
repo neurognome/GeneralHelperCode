@@ -5,8 +5,9 @@ classdef NIDAQController < handle
     end
     
     methods
-        function obj = NIDAQController()
+        function obj = NIDAQController(rate)
             obj.session = daq.createSession('ni');
+            obj.session.Rate = rate;
         end
 
         function lines = inputPorts(obj, needed_lines)
@@ -26,7 +27,7 @@ classdef NIDAQController < handle
             [~, idx] = obj.session.addDigitalChannel('Dev1', channel, 'OutputOnly');
         end
         
-        function reline(obj)
+        function report(obj)
             disp(obj.session)
         end
     
