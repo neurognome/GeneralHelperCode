@@ -8,7 +8,7 @@ classdef NIDAQDriver < handle
     end
 
     methods
-        function obj = NIDAQController()
+        function obj = NIDAQDriver()
             obj.session = daq.createSession('ni');
         end
 

@@ -1,4 +1,4 @@
-classdef StepperDriver < NIDAQController
+classdef StepperDriver < NIDAQDriver
     properties (Constant = true)
         STEPS_PER_REV = 200;
         MAX_SPEED = 400;
@@ -14,7 +14,7 @@ classdef StepperDriver < NIDAQController
     
     methods
         function obj = StepperDriver(lines, microstep_controller)
-            obj = obj@NIDAQController(); % Call superclass constructor
+            obj = obj@NIDAQDriver();
             obj.microstep_controller = microstep_controller;
 
             % Assign lines
@@ -25,7 +25,6 @@ classdef StepperDriver < NIDAQController
             obj.step_line = obj.addDigitalOutput(lines{1});
             obj.dir_line = obj.addDigitalOutput(lines{2});
             obj.output = zeros(1, length(lines));
-
             obj.setupClock();
         end
 
@@ -83,33 +82,34 @@ classdef StepperDriver < NIDAQController
     end
 
     methods (Access = protected)
-         function setupClock(obj)
-            % From https://www.mathworks.com/help/daq/acquire-digital-data-using-a-counter-output-channel-as-external-clock.html
-            persistent clock_chnl
+        % function setupClock(obj)
+        %     % From https://www.mathworks.com/help/daq/acquire-digital-data-using-a-counter-output-channel-as-external-clock.html
+        %     persistent clock_chnl
 
-            if isempty(clock_chnl)
-                clock_chnl = -1;
-            end
+        %     if isempty(clock_chnl)
+        %         clock_chnl = -1;
+        %     end
 
-            clock_chnl = clock_chnl + 1;
-            obj.clock_session = daq.createSession('ni');
-            ch1 = addCounterOutputChannel(obj.clock_session,'Dev1', clock_chnl, 'PulseGeneration');
-            clk_terminal = ch1.Terminal;
-            ch1.Frequency = obj.CLOCK_FREQ;
-            obj.clock_session.IsContinuous = true;
-            obj.session.Rate = ch1.Frequency;
-            obj.clock_session.Rate = ch1.Frequency;
-            obj.session.addClockConnection('External',['Dev1/' clk_terminal], 'ScanClock');
-            obj.clock_session.startBackground();
+        %     clock_chnl = clock_chnl + 1;
+        %     obj.clock_session = daq.createSession('ni');
+        %     ch1 = addCounterOutputChannel(obj.clock_session,'Dev1', 1, 'PulseGeneration');
+        %     clk_terminal = ch1.Terminal;
+        %     ch1.Frequency = obj.CLOCK_FREQ;
+        %     obj.clock_session.IsContinuous = true;
+        %     obj.session.Rate = ch1.Frequency;
+        %     obj.clock_session.Rate = ch1.Frequency;
+        %     obj.session.addClockConnection('External',['Dev1/' clk_terminal], 'ScanClock');
+        %     obj.clock_session.startBackground();
 
-            for ii = 1:10 % Confirm the clock is running
-                if obj.clock_session.IsRunning
-                    break;
-                else
-                    pause(0.1);
-                end
-            end        
-        end
+        %     for ii = 1:10 % Confirm the clock is running
+        %         if obj.clock_session.IsRunning
+        %             break;
+        %         else
+        %             pause(0.1);
+        %         end
+        %     end        
+        % end
+
         
         function checkSpeed(obj, speed)
             % Ensure speed isn't too high

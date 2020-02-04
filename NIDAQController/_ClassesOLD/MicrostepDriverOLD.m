@@ -1,19 +1,21 @@
-classdef MicrostepDriver < NIDAQController
+classdef MicrostepDriver < NIDAQDriver
 	properties
 		microstep_lines 
 		microstep_value
+        direction_line
 	end
 
 	methods
 		function obj = MicrostepDriver(lines)
-			obj = obj@NIDAQController()
+			obj = obj@NIDAQDriver()
 
 			if nargin < 1 || isempty(lines)
-				lines = obj.inputPorts({'microstep1, microstep2', 'microstep3'});
+				lines = obj.inputPorts({'direction', 'microstep1', 'microstep2', 'microstep3'});
 			end
 
+            obj.direction_line = obj.addDigitalOutput(lines{1});
 			for i_line = 1:3
-				obj.microstep_lines(i_line) = obj.addDigitalOutput(lines{i_line});
+				obj.microstep_lines(i_line) = obj.addDigitalOutput(lines{i_line+1});
 			end
 			obj.output = zeros(1, length(obj.microstep_lines));
 			obj.setMicrostepAmount('Sixteenth');
