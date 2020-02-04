@@ -1,11 +1,11 @@
-classdef MicrostepperControl < NIDAQController
+classdef MicrostepDriver < NIDAQController
 	properties
 		microstep_lines 
 		microstep_value
 	end
 
 	methods
-		function obj = MicrostepperControl(lines)
+		function obj = MicrostepDriver(lines)
 			obj = obj@NIDAQController()
 
 			if nargin < 1 || isempty(lines)

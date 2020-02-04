@@ -1,9 +1,12 @@
-classdef NIDAQController < handle
+classdef NIDAQDriver < handle
     properties
         session
+    end
+
+    properties (Access = protected)
         output
     end
-    
+
     methods
         function obj = NIDAQController()
             obj.session = daq.createSession('ni');
@@ -29,7 +32,7 @@ classdef NIDAQController < handle
         function report(obj)
             disp(obj.session)
         end
-    
+
         function digitalWrite(obj, line, val)
             obj.output(line) = val;
             obj.session.outputSingleScan(obj.output);

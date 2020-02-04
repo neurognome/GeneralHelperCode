@@ -4,11 +4,16 @@
 % LED? IDK
 % Stepper for sure
 addpath(genpath('./_Classes'))
-m = MicrostepperControl({'port0/line4', 'port0/line5', 'port0/line6'});
-t = StepperController({'port0/line0','port0/line1'}, m);
-%t = StepperController({'port1/line1','port1/line2','port1/line3','port1/line4','port1/line5'});
+m = MicrostepperDriver({'port0/line4', 'port0/line5', 'port0/line6'});
+t = SteppreDriver({'port0/line0','port0/line1'});
+t(2) = StepperDriver({'port0/line2', 'port0/line3'});
 
-t.queue(300, 'steps', 200);
-t.drive()
+% 
+ t(1).queue(10, 'steps', 200);
+ t(2).queue(10, 'steps', 200);
+ t(1).drive();
+t(2).drive();
+t(1).test(40); % should be 1 full rotation
+t(2).test(40);
 
-t.test(40); % should be 1 full rotation
+clear('m', 't')
