@@ -5,9 +5,8 @@ classdef NIDAQController < handle
     end
     
     methods
-        function obj = NIDAQController(rate)
+        function obj = NIDAQController()
             obj.session = daq.createSession('ni');
-            obj.session.Rate = rate;
         end
 
         function lines = inputPorts(obj, needed_lines)
