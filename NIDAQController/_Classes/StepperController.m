@@ -9,56 +9,52 @@ classdef StepperController < NIDAQController
 		step_idx
 
 		aux_controller
-		timer
+		clock
 	end
 
 	methods
-		function obj = StepperController(motors, timer, aux_controller)
+		function obj = StepperController(motors, clock)
 			obj = obj@NIDAQController();
 			obj.motors = motors;
-			obj.aux_controller = aux_controller; % I don't like this...
-			obj.timer = timer;
+			%obj.aux_controller = aux_controller; % I don't like this...
+			obj.clock = clock;
 
 			% Add lines
 			ct = 1;
 			for m = obj.motors
 				obj.step_idx(ct) = obj.addDigitalOutput(m.getStepLine());
+				if ct == 1
+					obj.aux_controller = AuxController(m);
+				else
+					obj.aux_controller(ct) = AuxController(m);
+				end
 				ct = ct + 1;
 			end
 
 			% Set up time
-			obj.session.addClockConnection('External',['Dev1/' obj.timer.getClockTerminal()], 'ScanClock');
-			obj.session.Rate = obj.timer.getFs();
-			obj.timer.startClock();
+			obj.session.addClockConnection('External',['Dev1/' obj.clock.getClockTerminal()], 'ScanClock');
+			obj.session.Rate = obj.clock.getFs();
+			obj.clock.startClock();
 		end
 
 		function queue(obj, speed, input_type, value)
 			if strcmp(input_type, 'steps') && (length(speed) ~= length(obj.motors) || length(value) ~= length(obj.motors))
 				error('Input the same number of speed/values as motors');
 			end
+
             % Queue output data, this lets us set up a stimilus trial structure by queueing multiple "phases"
             obj.checkSpeed(max(speed))
-
-            switch input_type
-            	% Duration must be equal, but spee might not be
-            case 'steps'
-            	n_steps = value .* obj.aux_controller.getMicrostepScale();
-
-            	for n = 1:length(obj.motors)
-            		duration(n) = obj.getDuration(n_steps(n), speed(n));
+            for n = 1:length(obj.motors)
+            	switch input_type
+            	case 'steps'
+            		n_steps(n) = value(n) .* obj.aux_controller(n).getMicrostepScale();
+            		duration = obj.getDuration(n_steps(n), speed(n) * obj.aux_controller(n).getMicrostepScale());
+            	case 'seconds'
+            		duration = value;
+            		n_steps = obj.getSteps(duration, speed * obj.aux_controller(n).getMicrostepScale());
+            	%	n_steps = repmat(n_steps, 1, length(obj.motors));
             	end
-
-            	if all(duration == duration(1))
-            		duration = duration(1);
-            	else
-            		error('Different directions calculated, check your numbers')
-            	end
-
-            case 'seconds'
-            	duration = value;
-            	n_steps = obj.getSteps(duration, speed);
             end
-
 	        n_samples = round(duration .* obj.session.Rate); % Getting the length of the output vector
 	        output = zeros(n_samples, length(obj.motors));
 	        for n = 1:length(obj.motors)
@@ -67,9 +63,10 @@ classdef StepperController < NIDAQController
 	        	drive_vector(step_vec) = true;
 	        	output(:, n) = drive_vector;
 	        end
-
 	        obj.sendDataToDAQ(output);
 	    end
+
+
 
 	    function drive(obj)
             % Start driving motor
@@ -102,16 +99,16 @@ classdef StepperController < NIDAQController
 
         function duration = getDuration(obj, n_steps, speed) 
             % Convert from n_steps and speed to time (in seconds)
-            speed = speed .* obj.aux_controller.getMicrostepScale();
+            %speed = speed .;
             duration = n_steps .* 1./((speed./ 60) .* obj.STEPS_PER_REV); % nsteps * rotations per second * 1/steps per rotation
         end
 
         function n_steps = getSteps(obj, duration, speed)
             % Convert from speed and duration to number steps
-            speed = speed .* obj.aux_controller.getMicrostepScale();
-            n_steps = (speed./60) .* duration .* obj.STEPS_PER_REV .* obj.aux_controller.getMicrostepScale();
-        end
-    end
+           % speed = speed .* obj.aux_controller.getMicrostepScale();
+           n_steps = (speed./60) .* duration .* obj.STEPS_PER_REV;
+       end
+   end
 end
 
 

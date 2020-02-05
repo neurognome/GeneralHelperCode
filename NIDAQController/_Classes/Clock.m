@@ -1,12 +1,15 @@
-classdef Timer < handle
-	properties
-		clock_session
-		terminal
-		CLOCK_FREQ = 1e6;
-	end
-	
-	methods
-		function obj = Timer()
+classdef Clock < handle
+    properties (Constant = true)
+        CLOCK_FREQ = 1e5;
+    end
+
+    properties
+      clock_session
+      terminal
+  end
+
+  methods
+      function obj = Clock()
             % From https://www.mathworks.com/help/daq/acquire-digital-data-using-a-counter-output-channel-as-external-clock.html
 
             obj.clock_session = daq.createSession('ni');
@@ -17,7 +20,7 @@ classdef Timer < handle
             obj.clock_session.Rate = ch.Frequency;
             % obj.session.addClockConnection('External',['Dev1/' clk_terminal], 'ScanClock');
         end
-        
+
         function out = getClockTerminal(obj)
         	out = obj.terminal;
         end
