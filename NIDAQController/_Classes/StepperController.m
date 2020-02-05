@@ -109,15 +109,26 @@ classdef StepperController < NIDAQController
             obj.drive();
         end
 
-        function changeDirection(obj, motor_num, direction)
-        	if nargin < 3 || isempty(direction)
+        function changeDirection(obj, direction, motor_num)
+        	if nargin < 2 || isempty(direction)
         		direction = questdlg('Choose your direction: ', 'Direction', 'cw', 'ccw', 'cw');
         	end
+
+        	if nargin < 3 || isempty(motor_num)
+        		motor_num = 1;
+        	end
+
         	obj.aux_controller(motor_num).setDirection(direction)
         end
 
-    end
+        function changeMicrostep(obj, microstep, motor_num)
+        	if nargin  < 3 || isempty(motor_num)
+        		motor_num = 1;
+        	end
 
+        	obj.aux_controller(motor_num).setMicrostep(microstep);
+        end
+    end
     methods (Access = protected)
     	function checkSpeed(obj, speed)
             % Ensure speed isn't too high

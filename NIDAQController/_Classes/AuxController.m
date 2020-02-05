@@ -18,10 +18,10 @@ classdef AuxController < NIDAQController
 				obj.microstep_idx(l) = obj.addDigitalOutput(obj.motor.getMicrostepLine(l));
 			end
 			obj.output = zeros(1, 4);
-			obj.setMicrostepAmount('Sixteenth')
+			obj.setMicrostep('Sixteenth')
 		end
 
-		function setMicrostepAmount(obj, microstep_amount)
+		function setMicrostep(obj, microstep_amount)
 			if nargin < 2 || isempty(microstep_amount)
                 % Stupid MATLAB doesn't let us have more than 3 buttons...
                 choices = {'Full', 'Half', 'Quarter', 'Eighth', 'Sixteenth'};
@@ -50,6 +50,8 @@ classdef AuxController < NIDAQController
             	obj.digitalWrite(obj.microstep_idx(1), 1);
             	obj.digitalWrite(obj.microstep_idx(2), 1);
             	obj.digitalWrite(obj.microstep_idx(3), 1);
+            otherwise
+                error('Wrong value, choices: Full, Half, Quarter, Eighth, Sixteenth')
             end
             
             obj.microstep_value = microstep_amount;
