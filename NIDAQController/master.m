@@ -18,21 +18,28 @@ temp.lockDrive();
 % Whenever you change direction, microstep, you need to give it a break in the drive. This is because the auxiliary
 % controller works through different lines than the main driver, and can't be queued into the output
 
-temp.queue([3, 10], 'seconds', 5);
-temp.drive()
+big_dia = 256; %mm
+small_dia = 37.81; %mm
+scaleRPM = @(x) (big_dia * x) / small_dia;
 
+% Rotate
+temp.changeDirection(1, 'cw');
+temp.changeDirection(2, 'cw');
+temp.queue([3, scaleRPM(3)], 'seconds', 600);
+temp.backgroundDrive()
+
+% Offset
 temp.changeDirection(1, 'cw');
 temp.rotate(1, 45);
 temp.drive()
 
-temp.queue([3, 10], 'seconds', 5);
-temp.drive();
-
+% Reset
 temp.changeDirection(1, 'ccw');
 temp.rotate(1, 45);
 temp.drive()
 
+% Rotate
 temp.changeDirection(1, 'cw');
-temp.queue([3, 10], 'seconds', 5);
+temp.queue([3, 20], 'seconds', 5);
 temp.drive();
 

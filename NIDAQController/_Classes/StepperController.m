@@ -98,6 +98,11 @@ classdef StepperController < NIDAQController
         	obj.session.startBackground();
         end
 
+        function abort(obj)
+        	obj.session.stop();
+        	obj.flush();
+        end
+        
         function test(obj, speed)
             % For quick testing
             obj.queue(repmat(speed, 1, length(obj.motors)), 'steps', repmat(200, 1, length(obj.motors))); % should be 1 rev
