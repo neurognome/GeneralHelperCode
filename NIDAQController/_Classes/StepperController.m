@@ -48,12 +48,17 @@ classdef StepperController < NIDAQController
             	switch input_type
             	case 'steps'
             		n_steps(n) = value(n) .* obj.aux_controller(n).getMicrostepScale();
-            		duration = obj.getDuration(n_steps(n), speed(n) * obj.aux_controller(n).getMicrostepScale());
+            		duration(n) = obj.getDuration(n_steps(n), speed(n) * obj.aux_controller(n).getMicrostepScale());
             	case 'seconds'
-            		duration = value;
+            		duration(n) = value;
             		n_steps = obj.getSteps(duration, speed * obj.aux_controller(n).getMicrostepScale());
             	end
             end
+            
+            % When steps are 0, then time is 0, get rid of these errors
+            duration(isnan(duration)) = 0;
+            duration = max(duration);
+
 	        n_samples = round(duration .* obj.session.Rate); % Getting the length of the output vector
 	        output = zeros(n_samples, length(obj.motors));
 	        for n = 1:length(obj.motors)
@@ -86,19 +91,26 @@ classdef StepperController < NIDAQController
 
 	    function drive(obj)
             % Start driving motor
-            obj.session.startBackground();
+            obj.session.startForeground();
         end
 
-        function lockDrive(obj)
-        	obj.session.startForeground();
+        function backgroundDrive(obj)
+        	obj.session.startBackground();
         end
 
         function test(obj, speed)
             % For quick testing
             obj.queue(repmat(speed, 1, length(obj.motors)), 'steps', repmat(200, 1, length(obj.motors))); % should be 1 rev
             obj.drive();
-
         end
+
+        function changeDirection(obj, motor_num, direction)
+        	if nargin < 3 || isempty(direction)
+        		direction = questdlg('Choose your direction: ', 'Direction', 'cw', 'ccw', 'cw');
+        	end
+        	obj.aux_controller(motor_num).setDirection(direction)
+        end
+
     end
 
     methods (Access = protected)

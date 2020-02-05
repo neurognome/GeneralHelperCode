@@ -12,12 +12,27 @@ temp.wait(2);
 temp.rotate(2, 90);%temp.queue([0, 50], 'steps', [0, 50]); % why switch no work? % add queue flushing, add pause
 temp.wait(2); %temp.queue([0, 0], 'seconds', 1);
 temp.queue([100, 150], 'seconds', 5);
+temp.lockDrive();
+
+
+% Whenever you change direction, microstep, you need to give it a break in the drive. This is because the auxiliary
+% controller works through different lines than the main driver, and can't be queued into the output
+
+temp.queue([3, 10], 'seconds', 5);
+temp.drive()
+
+temp.changeDirection(1, 'cw');
+temp.rotate(1, 45);
+temp.drive()
+
+temp.queue([3, 10], 'seconds', 5);
 temp.drive();
 
+temp.changeDirection(1, 'ccw');
+temp.rotate(1, 45);
+temp.drive()
 
-temp.queue([3, 10], 'seconds', 10);
-temp.rotate(1, 90);
-temp.queue([3, 10], 'seconds', 10);
+temp.changeDirection(1, 'cw');
+temp.queue([3, 10], 'seconds', 5);
 temp.drive();
 
-temp.t(100)

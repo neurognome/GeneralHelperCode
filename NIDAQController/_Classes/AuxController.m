@@ -13,7 +13,7 @@ classdef AuxController < NIDAQController
 			obj = obj@NIDAQController();
 			obj.motor = motor;
 
-			dir_idx = obj.addDigitalOutput(obj.motor.getDirLine());
+			obj.dir_idx = obj.addDigitalOutput(obj.motor.getDirLine());
 			for l = 1:3
 				obj.microstep_idx(l) = obj.addDigitalOutput(obj.motor.getMicrostepLine(l));
 			end
@@ -53,6 +53,15 @@ classdef AuxController < NIDAQController
             end
             
             obj.microstep_value = microstep_amount;
+        end
+
+        function setDirection(obj, direction)
+        	switch direction
+        	case 'cw'
+        		obj.digitalWrite(obj.dir_idx, 0);
+        	case 'ccw'
+        		obj.digitalWrite(obj.dir_idx, 1);
+        	end
         end
 
         function out = getMicrostepScale(obj)
