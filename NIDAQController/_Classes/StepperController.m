@@ -52,7 +52,6 @@ classdef StepperController < NIDAQController
             	case 'seconds'
             		duration = value;
             		n_steps = obj.getSteps(duration, speed * obj.aux_controller(n).getMicrostepScale());
-            	%	n_steps = repmat(n_steps, 1, length(obj.motors));
             	end
             end
 	        n_samples = round(duration .* obj.session.Rate); % Getting the length of the output vector
@@ -66,7 +65,24 @@ classdef StepperController < NIDAQController
 	        obj.sendDataToDAQ(output);
 	    end
 
+	    function flush(obj)
+	    	obj.session.release();
+	    end
 
+	    function wait(obj, duration)
+	    	obj.queue(zeros(1, length(obj.motors)), 'seconds', duration);
+	    end
+
+	    function rotate(obj, motor_num, angle, speed)
+	    	if nargin < 4 || isempty(speed)
+	    		speed = 10;
+	    	end
+	    	speeds = zeros(1, length(obj.motors));
+	    	steps = speeds;
+	    	speeds(motor_num) = speed;
+	    	steps(motor_num) = round((angle/360) * 200);
+	    	obj.queue(speeds, 'steps', steps)
+	    end
 
 	    function drive(obj)
             % Start driving motor
