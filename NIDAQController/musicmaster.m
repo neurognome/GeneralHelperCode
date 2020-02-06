@@ -6,5 +6,6 @@ t = Clock();
 
 temp = StepperController(m, t);
 
-temp.changeMicrostep('Half');
-temp.test(100)
+temp.changeMicrostep('Full');
+temp.queue(300, 'seconds', 1000)
+temp.drive

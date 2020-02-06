@@ -23,23 +23,28 @@ small_dia = 37.81; %mm
 scaleRPM = @(x) (big_dia * x) / small_dia;
 
 % Rotate
-temp.changeDirection(1, 'cw');
-temp.changeDirection(2, 'cw');
-temp.queue([3, scaleRPM(3)], 'seconds', 600);
-temp.backgroundDrive()
+temp.changeDirection('cw', 1);
+temp.changeDirection('cw', 2);
+temp.queue([3, scaleRPM(3)], 'seconds', 5);
+temp.drive()
+
+pause(1);
 
 % Offset
-temp.changeDirection(1, 'cw');
+temp.changeDirection('cw', 1);
 temp.rotate(1, 45);
 temp.drive()
+pause(1);
 
 % Reset
-temp.changeDirection(1, 'ccw');
+temp.changeDirection('ccw', 1);
 temp.rotate(1, 45);
 temp.drive()
 
+pause(1);
+
 % Rotate
-temp.changeDirection(1, 'cw');
+temp.changeDirection('cw', 1);
 temp.queue([3, 20], 'seconds', 5);
 temp.drive();
 
