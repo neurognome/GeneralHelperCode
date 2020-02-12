@@ -1,6 +1,8 @@
 % set up arduinos
+% Both pins are generally D7.
+% COM 4 is the port closer to the screen
 
-addpath('./_Classes');
+addpath(genpath('./_Classes'));
 s = ArduinoServoController([], 'COM4');
 
 led = ArduinoLEDController([], 'COM5'); % Pass the arduino pointer into here
