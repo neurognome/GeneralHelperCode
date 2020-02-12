@@ -1,5 +1,7 @@
 function batchProcessing_2P_OLD
 %what you run
+
+addpath(genpath('C:\Users\sit\Dropbox\PostProcessing\Goard_Method'));
 batch_type = questdlg('What are you running','Batch Type','A_ProcessTimeSeries','C_ExtractDFF','A_ProcessTimeSeries');
 autorun_flag = 1
 if autorun_flag %& strcmp(batch_type,'A_ProcessTime_Series')
