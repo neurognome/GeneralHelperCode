@@ -105,6 +105,7 @@ classdef EyeTracker < handle
             raw_img = imread(uigetfile('.tif'));
             
             % Match resolution
+            figure;
             calibration_img = rgb2gray(raw_img(:, :, 1:3)); % Discard alpha
             calibration_img = imresize(calibration_img, [size(obj.movie, 1), size(obj.movie, 2)]);
             imagesc(calibration_img);
@@ -164,11 +165,20 @@ classdef EyeTracker < handle
                 vert_ang(frame) = vert_ang(frame) * sign(y_deviation);
             end
             
-            obj.center_of_gaze = [abs(vert_ang); abs(horz_ang)];
-            
-            
+            obj.center_of_gaze = [real(vert_ang); real(horz_ang)]; % Some imaginaries for some reason? idk
         end
         
+        function gaze_map = getGazeMap(obj)
+            gaze_map = zeros(100, 130);
+            half_pt = size(gaze_map)/2;
+            bound = @(x, l, u) min(max(x, l), u);
+            for y = obj.center_of_gaze
+                curr = zeros(size(gaze_map));
+                curr(bound(half_pt(1) + round(y(1)), 1, size(gaze_map, 1)), bound(half_pt(2) + round(y(2)), 1, size(gaze_map, 2))) = 1;
+                gaze_map = gaze_map + curr;
+            end
+        end
+
         function video = checkPerformance(obj, frames, playback_speed)
             if nargin < 2 || isempty(frames)
                 frames = 1:size(obj.cropped_movie, 3);
@@ -319,7 +329,6 @@ classdef EyeTracker < handle
                 sprintf('Pupil position: [%0.2f, %0.2f]', pupil_position(1), pupil_position(2)),...
                 'Color', 'red',...
                 'FontSize', 12)
-            
         end
         
         function drawPupilBoundary(obj, frame)
