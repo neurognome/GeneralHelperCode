@@ -83,7 +83,7 @@ classdef ArduinoServoController < ArduinoController
                 if mod(r, 2)
                 obj.rotate(0.06) % Default 0.7
                 else
-                    obj.rotate(0.05, 'backward')
+                    obj.rotate(0.21, 'backward')
                 end
                 pause(params(1))
                 
