@@ -188,15 +188,12 @@ for frame = 1:length(obj.pupil)
                 playback_speed = 2; % times
             end
 
-
             if isempty(obj.center_of_gaze)
                 video = obj.checkRawPerformance(frames, playback_speed);
             else
                 video = obj.checkCoGPerformance(frames, playback_speed);
             end
         end
-
-
     end
     
     methods (Access = protected)
@@ -211,21 +208,18 @@ for frame = 1:length(obj.pupil)
             else
                 blank_screen = blank_screen .* 0.85;
             end
-            
-%             circle_pix = (im_row - (mid_pt(1) - 10 * round(obj.center_of_gaze(1, frame)))).^2 ...
-%                 + (im_col -  (mid_pt(2) - 10 * round(obj.center_of_gaze(2, frame)))).^2 <= 10.^2;
-%             blank_screen(circle_pix') = 1;
-blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
-imagesc(fliplr(blank_screen))        
-end
 
-function idx = pupilChooser(obj, temp)
-    figure
-    imagesc(obj.cropped_movie(:, :, 1));
-    title('Choose center of pupil with mouse, hit Enter key when finished')
-    colormap gray
-    axis image
-    axis off
+            blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
+            imagesc(fliplr(blank_screen))        
+        end
+
+        function idx = pupilChooser(obj, temp)
+            figure
+            imagesc(obj.cropped_movie(:, :, 1));
+            title('Choose center of pupil with mouse, hit Enter key when finished')
+            colormap gray
+            axis image
+            axis off
             [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
@@ -455,5 +449,5 @@ function idx = pupilChooser(obj, temp)
                 video(frame_ctr) = getframe(gcf);
             end
         end
-
     end
+end
