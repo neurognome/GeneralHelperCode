@@ -1,5 +1,5 @@
 classdef EyeTracker < handle
-    
+
     properties (Constant = true)
         EYE_RADIUS = 1.7; % mm
     end
@@ -45,36 +45,36 @@ classdef EyeTracker < handle
             mean_frame_F = squeeze(mean(mean(obj.movie, 1), 2));
             is_dropped_frame = mean_frame_F == 0;
             switch method
-                case 'drop'
-                    obj.movie = obj.movie(:, :, ~is_dropped_frame);
-                case 'interpolate'
-                    for frame = find(is_dropped_frame)'
+            case 'drop'
+                obj.movie = obj.movie(:, :, ~is_dropped_frame);
+            case 'interpolate'
+                for frame = find(is_dropped_frame)'
                         previous_frame = find(~is_dropped_frame(1:frame - 1), 1, 'last'); % previous undropped frame
                         next_frame = find(~is_dropped_frame(frame + 1:end), 1, 'first') + frame; % next undropped frame
                         
                         obj.movie(:, :, frame) = (mean(cat(3, obj.movie(:, :, previous_frame), obj.movie(:, :, next_frame)), 3));
                     end
+                end
             end
-        end
-        
-        function cropMovie(obj)
-            obj.getEyeROI();
-            x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
-            y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
-            
-            fprintf('Cropping movie to specified ROI...\n')
-            movie_roi = zeros(y_size, x_size, size(obj.movie, 3));
-            ct = 1;
-            for frame = 1:size(obj.movie, 3)
-                curr_frame = obj.movie(:, :, frame);
-                movie_roi(:, :, ct) = reshape(curr_frame(obj.eye_roi), y_size, x_size);
-                ct = ct + 1;
+
+            function cropMovie(obj)
+                obj.getEyeROI();
+                x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
+                y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
+
+                fprintf('Cropping movie to specified ROI...\n')
+                movie_roi = zeros(y_size, x_size, size(obj.movie, 3));
+                ct = 1;
+                for frame = 1:size(obj.movie, 3)
+                    curr_frame = obj.movie(:, :, frame);
+                    movie_roi(:, :, ct) = reshape(curr_frame(obj.eye_roi), y_size, x_size);
+                    ct = ct + 1;
+                end
+
+                obj.cropped_movie = movie_roi;
             end
-            
-            obj.cropped_movie = movie_roi;
-        end
-        
-        function detectPupil(obj)
+
+            function detectPupil(obj)
             %threshold to find pupil
             % this code assumes that the pupil is the darkest.. can make this better later on
             fprintf('Detecting pupil...\n')
@@ -115,7 +115,7 @@ classdef EyeTracker < handle
             
             obj.pix_per_mm = distance / 10; % 10mm per cm
         end
-            
+
         
         function eye_radius = convertEyeRadiusToPixels(obj, eyeball_info)
             % This is terrible, rn. We need a mm to pix conversion.. how do that?
@@ -143,19 +143,19 @@ classdef EyeTracker < handle
                 y_centroid(frame) = obj.pupil(frame).Centroid(2);
             end
             
-             x_center = mean(x_centroid);
-             y_center = mean(y_centroid);
+            x_center = mean(x_centroid);
+            y_center = mean(y_centroid);
 %            x_center = eyeball_info.Centroid(1);
 %             y_center = eyeball_info.Centroid(2);
-            
-            eye_radius = obj.convertEyeRadiusToPixels(eyeball_info);
 
-                        
-            for frame = 1:length(obj.pupil)
-                x_deviation = (x_center - obj.pupil(frame).Centroid(1));
-                h = sqrt(eye_radius ^ 2 - x_deviation ^ 2);
-                y = sqrt(x_deviation^2 + (eye_radius - h)^2);
-                horz_ang(frame) = 2 * asind(y / (2 * eye_radius));
+eye_radius = obj.convertEyeRadiusToPixels(eyeball_info);
+
+
+for frame = 1:length(obj.pupil)
+    x_deviation = (x_center - obj.pupil(frame).Centroid(1));
+    h = sqrt(eye_radius ^ 2 - x_deviation ^ 2);
+    y = sqrt(x_deviation^2 + (eye_radius - h)^2);
+    horz_ang(frame) = 2 * asind(y / (2 * eye_radius));
                 horz_ang(frame) = horz_ang(frame) * sign(x_deviation); % to account for negative displacements
                 
                 y_deviation = (y_center - obj.pupil(frame).Centroid(2));
@@ -183,11 +183,99 @@ classdef EyeTracker < handle
             if nargin < 2 || isempty(frames)
                 frames = 1:size(obj.cropped_movie, 3);
             end
-            
+
             if nargin < 3 || isempty(playback_speed)
                 playback_speed = 2; % times
             end
+
+
+            if isempty(obj.center_of_gaze)
+                video = obj.checkRawPerformance(frames, playback_speed);
+            else
+                video = obj.checkCoGPerformance(frames, playback_speed);
+            end
+        end
+
+        function video = checkRawPerformance(obj, frames, playback_speed)
+            % Preparing some stuff to set the axis limits
+            pupil_size = [obj.pupil(frames).Area];
             
+            ct = 1;
+            for frame = frames
+                pupil_position(ct, :) = obj.pupil(frame).Centroid;
+                ct = ct  + 1;
+            end
+            
+            pupil_eccentricity = [obj.pupil(frames).Eccentricity];
+            
+            % Instantiate figure and prepare axes
+            figure('Units', 'normalized', 'Position', [0.2750 0.02 0.5 0.7])
+            
+            tick_values = floor(linspace(1, length(frames), 7));
+            
+            % preparing all the axes, probably a better way to do this.. but oh well
+            subplot(4, 3, 3)
+            pupil_size_line = animatedline;
+            axis([1, length(frames), minmax(pupil_size)]);
+            ylabel('pupil size')
+            xticks(tick_values)
+            xticklabels(frames(tick_values))
+            grid on
+            
+            subplot(4, 3, 6)
+            pupil_eccentricity_line = animatedline;
+            axis([1, length(frames), minmax(pupil_eccentricity)]);
+            ylabel('pupil eccentricity')            % pupil x tracking
+            xticks(tick_values)
+            xticklabels(frames(tick_values))
+            grid on
+            
+            subplot(4, 3, 9)
+            pupil_x = animatedline;
+            axis([1, length(frames), minmax(pupil_position(2, :))]);
+            ylabel('x position')
+            xticks(tick_values)
+            xticklabels(frames(tick_values))
+            grid on
+            
+            % pupil y tracking
+            subplot(4, 3, 12)
+            pupil_y = animatedline;
+            axis([1, length(frames), minmax(pupil_position(1, :))]);
+            ylabel('y position')
+            xticks(tick_values)
+            xticklabels(frames(tick_values))
+            xlabel('frame #')
+            grid on
+            
+            frame_ctr = 1;
+            for frame = frames
+                subplot(4, 3, [1:2, 4:5])
+                image(obj.cropped_movie(:, :, frame) * (64/255)) % scaling factor to get it in the right range
+                colormap gray
+                axis off
+                axis image
+                title(sprintf('Frame # %d', frame))
+                obj.drawPupilBoundary(frame);
+                %obj.drawMeasurementText(frame);
+                freezeColors();
+                
+                subplot(4, 3, [7:8, 10:11]);
+                obj.drawCoG(frame);
+                colormap(bone)
+                
+                addpoints(pupil_size_line, frame_ctr, obj.pupil(frame).Area);
+                addpoints(pupil_eccentricity_line, frame_ctr, obj.pupil(frame).Eccentricity);
+                addpoints(pupil_x, frame_ctr, obj.pupil(frame).Centroid(2, frame));
+                addpoints(pupil_y, frame_ctr, obj.pupil(frame).Centroid(1, frame));
+                frame_ctr = frame_ctr + 1;
+                pause(1/(30 * playback_speed))
+                
+                video(frame_ctr) = getframe(gcf);
+            end
+        end
+
+        function video = checkCoGPerformance(obj, frames, playback_speed)
             % Preparing some stuff to set the axis limits
             pupil_size = [obj.pupil(frames).Area];
             
@@ -268,7 +356,7 @@ classdef EyeTracker < handle
     end
     
     methods (Access = protected)
-        
+
         function drawCoG(obj, frame)
             persistent blank_screen mid_pt im_col im_row
             if frame == 1
@@ -283,17 +371,17 @@ classdef EyeTracker < handle
 %             circle_pix = (im_row - (mid_pt(1) - 10 * round(obj.center_of_gaze(1, frame)))).^2 ...
 %                 + (im_col -  (mid_pt(2) - 10 * round(obj.center_of_gaze(2, frame)))).^2 <= 10.^2;
 %             blank_screen(circle_pix') = 1;
-             blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
-            imagesc(fliplr(blank_screen))        
-        end
-        
-        function idx = pupilChooser(obj, temp)
-            figure
-            imagesc(obj.cropped_movie(:, :, 1));
-            title('Choose center of pupil with mouse, hit Enter key when finished')
-            colormap gray
-            axis image
-            axis off
+blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
+imagesc(fliplr(blank_screen))        
+end
+
+function idx = pupilChooser(obj, temp)
+    figure
+    imagesc(obj.cropped_movie(:, :, 1));
+    title('Choose center of pupil with mouse, hit Enter key when finished')
+    colormap gray
+    axis image
+    axis off
             [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
@@ -344,7 +432,7 @@ classdef EyeTracker < handle
             % rotation?
             ori = obj.pupil(frame).Orientation;
             R = [cosd(ori), -sind(ori);... % create rotation matrix
-                sind(ori), cosd(ori)];
+            sind(ori), cosd(ori)];
             
             rCoords = R * [x; y]; % apply transform
             
