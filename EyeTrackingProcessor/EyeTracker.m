@@ -45,42 +45,42 @@ classdef EyeTracker < handle
             mean_frame_F = squeeze(mean(mean(obj.movie, 1), 2));
             is_dropped_frame = mean_frame_F == 0;
             switch method
-            case 'drop'
-                obj.movie = obj.movie(:, :, ~is_dropped_frame);
-            case 'interpolate'
-                for frame = find(is_dropped_frame)'
-                        previous_frame = find(~is_dropped_frame(1:frame - 1), 1, 'last'); % previous undropped frame
-                        next_frame = find(~is_dropped_frame(frame + 1:end), 1, 'first') + frame; % next undropped frame
+                case 'drop'
+                    obj.movie = obj.movie(:, :, ~is_dropped_frame);
+                case 'interpolate'
+                    for frame = find(is_dropped_frame)'
+                            previous_frame = find(~is_dropped_frame(1:frame - 1), 1, 'last'); % previous undropped frame
+                            next_frame = find(~is_dropped_frame(frame + 1:end), 1, 'first') + frame; % next undropped frame
                         
                         obj.movie(:, :, frame) = (mean(cat(3, obj.movie(:, :, previous_frame), obj.movie(:, :, next_frame)), 3));
                     end
-                end
+            end
+        end
+
+        function cropMovie(obj)
+            obj.getEyeROI();
+            x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
+            y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
+
+            fprintf('Cropping movie to specified ROI...\n')
+            movie_roi = zeros(y_size, x_size, size(obj.movie, 3));
+            ct = 1;
+            for frame = 1:size(obj.movie, 3)
+                curr_frame = obj.movie(:, :, frame);
+                movie_roi(:, :, ct) = reshape(curr_frame(obj.eye_roi), y_size, x_size);
+                ct = ct + 1;
             end
 
-            function cropMovie(obj)
-                obj.getEyeROI();
-                x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
-                y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
+            obj.cropped_movie = movie_roi;
+        end
 
-                fprintf('Cropping movie to specified ROI...\n')
-                movie_roi = zeros(y_size, x_size, size(obj.movie, 3));
-                ct = 1;
-                for frame = 1:size(obj.movie, 3)
-                    curr_frame = obj.movie(:, :, frame);
-                    movie_roi(:, :, ct) = reshape(curr_frame(obj.eye_roi), y_size, x_size);
-                    ct = ct + 1;
-                end
-
-                obj.cropped_movie = movie_roi;
-            end
-
-            function detectPupil(obj)
+        function detectPupil(obj)
             %threshold to find pupil
             % this code assumes that the pupil is the darkest.. can make this better later on
             fprintf('Detecting pupil...\n')
             for frame = 1:size(obj.cropped_movie, 3)
                 is_pupil = obj.cropped_movie(:, :, frame) < (min(min(obj.cropped_movie(:, :, frame))) + ...
-                    uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
+                    2*uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
                 processed_pupil = bwmorph(is_pupil, 'open'); % clean up the other dark parts
                 temp = regionprops(processed_pupil,...
                     'Centroid', 'Orientation', 'BoundingBox', 'MajorAxisLength', 'MinorAxisLength', 'Area', 'Eccentricity');
@@ -190,31 +190,32 @@ classdef EyeTracker < handle
                 video = obj.checkCoGPerformance(frames, playback_speed);
             end
         end
+    end
 
-        methods (Access = protected)
+    methods (Access = protected)
 
-            function drawCoG(obj, frame)
-                persistent blank_screen mid_pt im_col im_row
-                if frame == 1
-                    im_size  =  [100, 130];
-                    blank_screen = zeros(im_size);
-                    mid_pt = size(blank_screen) / 2;
-                    [im_col, im_row] = meshgrid(1:im_size(1), 1:im_size(2));
-                else
-                    blank_screen = blank_screen .* 0.85;
-                end
-
-                blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
-                imagesc(fliplr(blank_screen))        
+        function drawCoG(obj, frame)
+            persistent blank_screen mid_pt im_col im_row
+            if frame == 1
+                im_size  =  [100, 130];
+                blank_screen = zeros(im_size);
+                mid_pt = size(blank_screen) / 2;
+                [im_col, im_row] = meshgrid(1:im_size(1), 1:im_size(2));
+            else
+                blank_screen = blank_screen .* 0.85;
             end
 
-            function idx = pupilChooser(obj, temp)
-                figure
-                imagesc(obj.cropped_movie(:, :, 1));
-                title('Choose center of pupil with mouse, hit Enter key when finished')
-                colormap gray
-                axis image
-                axis off
+            blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
+            imagesc(fliplr(blank_screen))        
+        end
+
+        function idx = pupilChooser(obj, temp)
+            figure
+            imagesc(obj.cropped_movie(:, :, 1));
+            title('Choose center of pupil with mouse, hit Enter key when finished')
+            colormap gray
+            axis image
+            axis off
             [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
@@ -223,7 +224,6 @@ classdef EyeTracker < handle
                 candidates(ii) = pdist2([x, y], temp(ii).Centroid);
             end
             [~, idx] = min(candidates);
-            
         end
         
         function idx = determineActualPupil(obj, current_pupil, working_pupil)
@@ -284,9 +284,8 @@ classdef EyeTracker < handle
             obj.eye_roi = eye_rectangle.createMask();
             close
         end
-    end
 
-    function video = checkRawPerformance(obj, frames, playback_speed)
+        function video = checkRawPerformance(obj, frames, playback_speed)
             % Preparing some stuff to set the axis limits
             pupil_size = [obj.pupil(frames).Area];
             
@@ -322,7 +321,7 @@ classdef EyeTracker < handle
             
             subplot(4, 3, 9)
             pupil_x = animatedline;
-            axis([1, length(frames), minmax(pupil_position(1, :))]);
+            axis([1, length(frames), minmax(pupil_position(2, :))]);
             ylabel('x position')
             xticks(tick_values)
             xticklabels(frames(tick_values))
@@ -331,7 +330,7 @@ classdef EyeTracker < handle
             % pupil y tracking
             subplot(4, 3, 12)
             pupil_y = animatedline;
-            axis([1, length(frames), minmax(pupil_position(2, :))]);
+            axis([1, length(frames), minmax(pupil_position(1, :))]);
             ylabel('y position')
             xticks(tick_values)
             xticklabels(frames(tick_values))
