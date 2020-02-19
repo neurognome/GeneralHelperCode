@@ -294,7 +294,7 @@ classdef EyeTracker < handle
             colormap gray
             axis image
             axis off
-            [x, y] = getpts();
+            [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
             candidates = zeros(1, length(temp));
