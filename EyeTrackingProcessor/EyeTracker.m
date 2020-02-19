@@ -145,17 +145,14 @@ classdef EyeTracker < handle
             
             x_center = mean(x_centroid);
             y_center = mean(y_centroid);
-%            x_center = eyeball_info.Centroid(1);
-%             y_center = eyeball_info.Centroid(2);
-
-eye_radius = obj.convertEyeRadiusToPixels(eyeball_info);
+            eye_radius = obj.convertEyeRadiusToPixels(eyeball_info);
 
 
-for frame = 1:length(obj.pupil)
-    x_deviation = (x_center - obj.pupil(frame).Centroid(1));
-    h = sqrt(eye_radius ^ 2 - x_deviation ^ 2);
-    y = sqrt(x_deviation^2 + (eye_radius - h)^2);
-    horz_ang(frame) = 2 * asind(y / (2 * eye_radius));
+            for frame = 1:length(obj.pupil)
+                x_deviation = (x_center - obj.pupil(frame).Centroid(1));
+                h = sqrt(eye_radius ^ 2 - x_deviation ^ 2);
+                y = sqrt(x_deviation^2 + (eye_radius - h)^2);
+                horz_ang(frame) = 2 * asind(y / (2 * eye_radius));
                 horz_ang(frame) = horz_ang(frame) * sign(x_deviation); % to account for negative displacements
                 
                 y_deviation = (y_center - obj.pupil(frame).Centroid(2));
@@ -164,7 +161,6 @@ for frame = 1:length(obj.pupil)
                 vert_ang(frame) = 2 * asind(y / (2 * eye_radius));
                 vert_ang(frame) = vert_ang(frame) * sign(y_deviation);
             end
-            
             obj.center_of_gaze = [real(vert_ang); real(horz_ang)]; % Some imaginaries for some reason? idk
         end
         
@@ -194,32 +190,31 @@ for frame = 1:length(obj.pupil)
                 video = obj.checkCoGPerformance(frames, playback_speed);
             end
         end
-    end
-    
-    methods (Access = protected)
 
-        function drawCoG(obj, frame)
-            persistent blank_screen mid_pt im_col im_row
-            if frame == 1
-                im_size  =  [100, 130];
-                blank_screen = zeros(im_size);
-                mid_pt = size(blank_screen) / 2;
-                [im_col, im_row] = meshgrid(1:im_size(1), 1:im_size(2));
-            else
-                blank_screen = blank_screen .* 0.85;
+        methods (Access = protected)
+
+            function drawCoG(obj, frame)
+                persistent blank_screen mid_pt im_col im_row
+                if frame == 1
+                    im_size  =  [100, 130];
+                    blank_screen = zeros(im_size);
+                    mid_pt = size(blank_screen) / 2;
+                    [im_col, im_row] = meshgrid(1:im_size(1), 1:im_size(2));
+                else
+                    blank_screen = blank_screen .* 0.85;
+                end
+
+                blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
+                imagesc(fliplr(blank_screen))        
             end
 
-            blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
-            imagesc(fliplr(blank_screen))        
-        end
-
-        function idx = pupilChooser(obj, temp)
-            figure
-            imagesc(obj.cropped_movie(:, :, 1));
-            title('Choose center of pupil with mouse, hit Enter key when finished')
-            colormap gray
-            axis image
-            axis off
+            function idx = pupilChooser(obj, temp)
+                figure
+                imagesc(obj.cropped_movie(:, :, 1));
+                title('Choose center of pupil with mouse, hit Enter key when finished')
+                colormap gray
+                axis image
+                axis off
             [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
@@ -258,10 +253,6 @@ for frame = 1:length(obj.pupil)
         end
         
         function drawPupilBoundary(obj, frame)
-            %    xCenter = 12.5;
-            %   yCenter = 10;
-            %  xRadius = 2.5;
-            % yRadius = 8;
             hold on
             theta = 0 : 0.01 : 2*pi;
             x = obj.pupil(frame).MinorAxisLength/2 * cos(theta);
@@ -331,7 +322,7 @@ for frame = 1:length(obj.pupil)
             
             subplot(4, 3, 9)
             pupil_x = animatedline;
-            axis([1, length(frames), minmax(pupil_position(2, :))]);
+            axis([1, length(frames), minmax(pupil_position(1, :))]);
             ylabel('x position')
             xticks(tick_values)
             xticklabels(frames(tick_values))
@@ -340,7 +331,7 @@ for frame = 1:length(obj.pupil)
             % pupil y tracking
             subplot(4, 3, 12)
             pupil_y = animatedline;
-            axis([1, length(frames), minmax(pupil_position(1, :))]);
+            axis([1, length(frames), minmax(pupil_position(2, :))]);
             ylabel('y position')
             xticks(tick_values)
             xticklabels(frames(tick_values))
@@ -362,8 +353,8 @@ for frame = 1:length(obj.pupil)
                 
                 addpoints(pupil_size_line, frame_ctr, obj.pupil(frame).Area);
                 addpoints(pupil_eccentricity_line, frame_ctr, obj.pupil(frame).Eccentricity);
-                addpoints(pupil_x, frame_ctr, obj.pupil(frame).Centroid(2, frame));
-                addpoints(pupil_y, frame_ctr, obj.pupil(frame).Centroid(1, frame));
+                addpoints(pupil_x, frame_ctr, obj.pupil(frame).Centroid(2));
+                addpoints(pupil_y, frame_ctr, obj.pupil(frame).Centroid(1));
                 frame_ctr = frame_ctr + 1;
                 pause(1/(30 * playback_speed))
                 
