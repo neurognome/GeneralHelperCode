@@ -365,9 +365,6 @@ function idx = pupilChooser(obj, temp)
                 %obj.drawMeasurementText(frame);
                 freezeColors();
                 
-                subplot(4, 3, [7:8, 10:11]);
-                obj.drawCoG(frame);
-                colormap(bone)
                 
                 addpoints(pupil_size_line, frame_ctr, obj.pupil(frame).Area);
                 addpoints(pupil_eccentricity_line, frame_ctr, obj.pupil(frame).Eccentricity);
@@ -458,5 +455,5 @@ function idx = pupilChooser(obj, temp)
                 video(frame_ctr) = getframe(gcf);
             end
         end
-        
+
     end
