@@ -196,7 +196,112 @@ for frame = 1:length(obj.pupil)
             end
         end
 
-        function video = checkRawPerformance(obj, frames, playback_speed)
+
+    end
+    
+    methods (Access = protected)
+
+        function drawCoG(obj, frame)
+            persistent blank_screen mid_pt im_col im_row
+            if frame == 1
+                im_size  =  [100, 130];
+                blank_screen = zeros(im_size);
+                mid_pt = size(blank_screen) / 2;
+                [im_col, im_row] = meshgrid(1:im_size(1), 1:im_size(2));
+            else
+                blank_screen = blank_screen .* 0.85;
+            end
+            
+%             circle_pix = (im_row - (mid_pt(1) - 10 * round(obj.center_of_gaze(1, frame)))).^2 ...
+%                 + (im_col -  (mid_pt(2) - 10 * round(obj.center_of_gaze(2, frame)))).^2 <= 10.^2;
+%             blank_screen(circle_pix') = 1;
+blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
+imagesc(fliplr(blank_screen))        
+end
+
+function idx = pupilChooser(obj, temp)
+    figure
+    imagesc(obj.cropped_movie(:, :, 1));
+    title('Choose center of pupil with mouse, hit Enter key when finished')
+    colormap gray
+    axis image
+    axis off
+            [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
+            close
+            
+            candidates = zeros(1, length(temp));
+            for ii = 1:length(temp)
+                candidates(ii) = pdist2([x, y], temp(ii).Centroid);
+            end
+            [~, idx] = min(candidates);
+            
+        end
+        
+        function idx = determineActualPupil(obj, current_pupil, working_pupil)
+            %previous pupil positions
+            candidates = zeros(1, length(current_pupil));
+            for ii = 1:length(current_pupil)
+                candidates(ii) = pdist2(current_pupil(ii).Centroid, working_pupil(end).Centroid);
+            end
+            [~, idx] = min(candidates);
+            % additional checks... later
+        end
+        
+        function drawMeasurementText(obj, frame)
+            % calculate positions
+            bounds = size(obj.cropped_movie);
+            pupil_position =  obj.pupil(frame).Centroid;
+            pupil_size = obj.pupil(frame).Area;
+            
+            text(bounds(2) - 60, bounds(1) - 10, ...
+                sprintf('Pupil size: %0.2f', pupil_size),...
+                'Color', 'red',...
+                'FontSize', 12)
+            text(bounds(2) - 60, bounds(1) - 5, ...
+                sprintf('Pupil position: [%0.2f, %0.2f]', pupil_position(1), pupil_position(2)),...
+                'Color', 'red',...
+                'FontSize', 12)
+        end
+        
+        function drawPupilBoundary(obj, frame)
+            %    xCenter = 12.5;
+            %   yCenter = 10;
+            %  xRadius = 2.5;
+            % yRadius = 8;
+            hold on
+            theta = 0 : 0.01 : 2*pi;
+            x = obj.pupil(frame).MinorAxisLength/2 * cos(theta);
+            y = obj.pupil(frame).MajorAxisLength/2 * sin(theta);
+            
+            % rotation?
+            ori = obj.pupil(frame).Orientation;
+            R = [cosd(ori), -sind(ori);... % create rotation matrix
+            sind(ori), cosd(ori)];
+            
+            rCoords = R * [x; y]; % apply transform
+            
+            xr = rCoords(1, :)';
+            yr = rCoords(2, :)';
+            
+            plot(yr + obj.pupil(frame).Centroid(1), xr+obj.pupil(frame).Centroid(2), 'LineWidth', 3, 'Color', [1, 0, 0]);
+            hold off
+        end
+        
+        function getEyeROI(obj)
+            fprintf('Choose your bounding box for the mouse eye...\n')
+            figure
+            imagesc(mean(obj.movie, 3));
+            title('Use mouse to drag a rectangle over the mouse eye')
+            axis off
+            axis image
+            colormap gray
+            eye_rectangle = imrect();
+            obj.eye_roi = eye_rectangle.createMask();
+            close
+        end
+    end
+
+    function video = checkRawPerformance(obj, frames, playback_speed)
             % Preparing some stuff to set the axis limits
             pupil_size = [obj.pupil(frames).Area];
             
@@ -353,108 +458,5 @@ for frame = 1:length(obj.pupil)
                 video(frame_ctr) = getframe(gcf);
             end
         end
+        
     end
-    
-    methods (Access = protected)
-
-        function drawCoG(obj, frame)
-            persistent blank_screen mid_pt im_col im_row
-            if frame == 1
-                im_size  =  [100, 130];
-                blank_screen = zeros(im_size);
-                mid_pt = size(blank_screen) / 2;
-                [im_col, im_row] = meshgrid(1:im_size(1), 1:im_size(2));
-            else
-                blank_screen = blank_screen .* 0.85;
-            end
-            
-%             circle_pix = (im_row - (mid_pt(1) - 10 * round(obj.center_of_gaze(1, frame)))).^2 ...
-%                 + (im_col -  (mid_pt(2) - 10 * round(obj.center_of_gaze(2, frame)))).^2 <= 10.^2;
-%             blank_screen(circle_pix') = 1;
-blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
-imagesc(fliplr(blank_screen))        
-end
-
-function idx = pupilChooser(obj, temp)
-    figure
-    imagesc(obj.cropped_movie(:, :, 1));
-    title('Choose center of pupil with mouse, hit Enter key when finished')
-    colormap gray
-    axis image
-    axis off
-            [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
-            close
-            
-            candidates = zeros(1, length(temp));
-            for ii = 1:length(temp)
-                candidates(ii) = pdist2([x, y], temp(ii).Centroid);
-            end
-            [~, idx] = min(candidates);
-            
-        end
-        
-        function idx = determineActualPupil(obj, current_pupil, working_pupil)
-            %previous pupil positions
-            candidates = zeros(1, length(current_pupil));
-            for ii = 1:length(current_pupil)
-                candidates(ii) = pdist2(current_pupil(ii).Centroid, working_pupil(end).Centroid);
-            end
-            [~, idx] = min(candidates);
-            % additional checks... later
-        end
-        
-        function drawMeasurementText(obj, frame)
-            % calculate positions
-            bounds = size(obj.cropped_movie);
-            pupil_position =  obj.pupil(frame).Centroid;
-            pupil_size = obj.pupil(frame).Area;
-            
-            text(bounds(2) - 60, bounds(1) - 10, ...
-                sprintf('Pupil size: %0.2f', pupil_size),...
-                'Color', 'red',...
-                'FontSize', 12)
-            text(bounds(2) - 60, bounds(1) - 5, ...
-                sprintf('Pupil position: [%0.2f, %0.2f]', pupil_position(1), pupil_position(2)),...
-                'Color', 'red',...
-                'FontSize', 12)
-        end
-        
-        function drawPupilBoundary(obj, frame)
-            %    xCenter = 12.5;
-            %   yCenter = 10;
-            %  xRadius = 2.5;
-            % yRadius = 8;
-            hold on
-            theta = 0 : 0.01 : 2*pi;
-            x = obj.pupil(frame).MinorAxisLength/2 * cos(theta);
-            y = obj.pupil(frame).MajorAxisLength/2 * sin(theta);
-            
-            % rotation?
-            ori = obj.pupil(frame).Orientation;
-            R = [cosd(ori), -sind(ori);... % create rotation matrix
-            sind(ori), cosd(ori)];
-            
-            rCoords = R * [x; y]; % apply transform
-            
-            xr = rCoords(1, :)';
-            yr = rCoords(2, :)';
-            
-            plot(yr + obj.pupil(frame).Centroid(1), xr+obj.pupil(frame).Centroid(2), 'LineWidth', 3, 'Color', [1, 0, 0]);
-            hold off
-        end
-        
-        function getEyeROI(obj)
-            fprintf('Choose your bounding box for the mouse eye...\n')
-            figure
-            imagesc(mean(obj.movie, 3));
-            title('Use mouse to drag a rectangle over the mouse eye')
-            axis off
-            axis image
-            colormap gray
-            eye_rectangle = imrect();
-            obj.eye_roi = eye_rectangle.createMask();
-            close
-        end
-    end
-    
-end
