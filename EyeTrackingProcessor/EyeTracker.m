@@ -137,7 +137,7 @@ classdef EyeTracker < handle
             eyeball_mask = eyeball.createMask();
             eyeball_info = regionprops(eyeball_mask, 'Centroid', 'MajorAxisLength', 'MinorAxisLength');
             close
-
+keyboard
             for frame = 1:length(obj.pupil)
                 x_centroid(frame) = obj.pupil(frame).Centroid(1);
                 y_centroid(frame) = obj.pupil(frame).Centroid(2);
