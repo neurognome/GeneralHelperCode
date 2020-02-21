@@ -14,15 +14,19 @@ eye.readEyeTrackingVideo();
 eye.cleanVideo('interpolate'); % method can be 'interpolate' or 'drop'
 
 % Crop to the eye
-eye.cropMovie(); 
+eye.cropMovie(1); 
 
 % Detect the pupil
-eye.detectPupil();
-
+eye.detectPupil(); % can input a threshold here if your thing isn't working well...
 
 eye.calibrate()
 eye.calculateCoG();
 
+
+gaze_map3 = eye.getGazeMap();
+
+%{@
 % Plot over time to check performance of detection
 eye.checkPerformance()
 
+%}
