@@ -13,11 +13,11 @@ classdef StepperController < NIDAQController
 	end
 
 	methods
-		function obj = StepperController(motors, clock)
+		function obj = StepperController(motors)
 			obj = obj@NIDAQController();
 			obj.motors = motors;
 			%obj.aux_controller = aux_controller; % I don't like this...
-			obj.clock = clock;
+			obj.clock = Clock();
 
 			% Add lines
 			ct = 1;
