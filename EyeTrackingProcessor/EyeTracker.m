@@ -14,7 +14,6 @@ classdef EyeTracker < handle
         
         
         pupil struct
-        center_pt
     end
     
     methods
@@ -46,23 +45,20 @@ classdef EyeTracker < handle
             mean_frame_F = squeeze(mean(mean(obj.movie, 1), 2));
             is_dropped_frame = mean_frame_F == 0;
             switch method
-            case 'drop'
-                obj.movie = obj.movie(:, :, ~is_dropped_frame);
-            case 'interpolate'
-                for frame = find(is_dropped_frame)'
-                    previous_frame = find(~is_dropped_frame(1:frame - 1), 1, 'last'); % previous undropped frame
-                    next_frame = find(~is_dropped_frame(frame + 1:end), 1, 'first') + frame; % next undropped frame
-
-                    obj.movie(:, :, frame) = (mean(cat(3, obj.movie(:, :, previous_frame), obj.movie(:, :, next_frame)), 3));
-                end
+                case 'drop'
+                    obj.movie = obj.movie(:, :, ~is_dropped_frame);
+                case 'interpolate'
+                    for frame = find(is_dropped_frame)'
+                            previous_frame = find(~is_dropped_frame(1:frame - 1), 1, 'last'); % previous undropped frame
+                            next_frame = find(~is_dropped_frame(frame + 1:end), 1, 'first') + frame; % next undropped frame
+                        
+                        obj.movie(:, :, frame) = (mean(cat(3, obj.movie(:, :, previous_frame), obj.movie(:, :, next_frame)), 3));
+                    end
             end
         end
 
-        function cropMovie(obj, rotate_flag)
-            if nargin < 2 || isempty(rotate_flag)
-                rotate_flag = false;
-            end
-            obj.getEyeROI(rotate_flag);
+        function cropMovie(obj)
+            obj.getEyeROI();
             x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
             y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
 
@@ -78,17 +74,13 @@ classdef EyeTracker < handle
             obj.cropped_movie = movie_roi;
         end
 
-        function detectPupil(obj, threshold)
-            if nargin < 2 || isempty(threshold)
-                threshold = 1;
-            end
-
+        function detectPupil(obj)
             %threshold to find pupil
             % this code assumes that the pupil is the darkest.. can make this better later on
             fprintf('Detecting pupil...\n')
             for frame = 1:size(obj.cropped_movie, 3)
                 is_pupil = obj.cropped_movie(:, :, frame) < (min(min(obj.cropped_movie(:, :, frame))) + ...
-                    threshold*uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
+                    2*uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
                 processed_pupil = bwmorph(is_pupil, 'open'); % clean up the other dark parts
                 temp = regionprops(processed_pupil,...
                     'Centroid', 'Orientation', 'BoundingBox', 'MajorAxisLength', 'MinorAxisLength', 'Area', 'Eccentricity');
@@ -102,11 +94,8 @@ classdef EyeTracker < handle
                         idx = 1;
                     end
                 end
-                if isempty(temp) % fringe cases, like blinking...
-                    pupil(frame) = pupil(frame - 1);
-                else
-                    pupil(frame) = temp(idx);
-                end
+                
+                pupil(frame) = temp(idx);
             end
             obj.pupil = pupil; % assignment issues if it's directly done above
         end
@@ -125,27 +114,9 @@ classdef EyeTracker < handle
             distance = pdist(calibration_line.getPosition(), 'euclidean');
             
             obj.pix_per_mm = distance / 10; % 10mm per cm
-
-            obj.getEyeCtr();
         end
 
-        function getEyeCtr(obj)
-            % plotting x position against eccentricity
-            for frame = 1:numel(obj.pupil)
-                x_pos(frame) = obj.pupil(frame).Centroid(1);
-                y_pos(frame) = obj.pupil(frame).Centroid(2);
-                ecc(frame) = obj.pupil(frame).Eccentricity;
-            end
-
-            % Least eccentric
-            obj.center_pt(1) = mean(x_pos(ecc < prctile(ecc, 0.1)));
-            obj.center_pt(2) = mean(y_pos(ecc < prctile(ecc, 0.1)));
-        end
         
-        function out = convertPixToMM(obj, in)
-            out = in/obj.pix_per_mm;
-        end
-
         function eye_radius = convertEyeRadiusToPixels(obj, eyeball_info)
             % This is terrible, rn. We need a mm to pix conversion.. how do that?
             if isempty(obj.pix_per_mm)
@@ -168,36 +139,30 @@ classdef EyeTracker < handle
             close
 
             for frame = 1:length(obj.pupil)
-                x_position(frame) = obj.pupil(frame).Centroid(1);
-                y_position(frame) = obj.pupil(frame).Centroid(2);
+                x_centroid(frame) = obj.pupil(frame).Centroid(1);
+                y_centroid(frame) = obj.pupil(frame).Centroid(2);
             end
-
-            x_center = obj.center_pt(1);
-            y_center = obj.center_pt(2);
+            
+            x_center = mean(x_centroid);
+            y_center = mean(y_centroid);
             eye_radius = obj.convertEyeRadiusToPixels(eyeball_info);
+
 
             for frame = 1:length(obj.pupil)
                 x_deviation = (x_center - obj.pupil(frame).Centroid(1));
                 h = sqrt(eye_radius ^ 2 - x_deviation ^ 2);
-                y = sqrt(x_deviation ^ 2 + (eye_radius - h)^2);
+                y = sqrt(x_deviation^2 + (eye_radius - h)^2);
                 horz_ang(frame) = 2 * asind(y / (2 * eye_radius));
-                horz_ang(frame) = -(horz_ang(frame) * sign(x_deviation)); % to account for negative displacements
-
+                horz_ang(frame) = horz_ang(frame) * sign(x_deviation); % to account for negative displacements
+                
                 y_deviation = (y_center - obj.pupil(frame).Centroid(2));
                 h = sqrt(eye_radius ^ 2 - y_deviation ^ 2);
                 y = sqrt(y_deviation^2 + (eye_radius - h)^2);
                 vert_ang(frame) = 2 * asind(y / (2 * eye_radius));
                 vert_ang(frame) = vert_ang(frame) * sign(y_deviation);
             end
-
-            % Here we need to subtract the mean, because we initially determined that the "x_center" is the most centered of the pupil, due to eccentricity, this is the correction we added earlier...
             obj.center_of_gaze = [real(vert_ang); real(horz_ang)]; % Some imaginaries for some reason? idk
-            for ii = 1:2
-                obj.center_of_gaze(ii, :) = obj.center_of_gaze(ii, :) - mean(obj.center_of_gaze(ii, :));
-            end
-
         end
-
         
         function gaze_map = getGazeMap(obj)
             gaze_map = zeros(100, 130);
@@ -240,9 +205,7 @@ classdef EyeTracker < handle
                 blank_screen = blank_screen .* 0.85;
             end
 
-            try
-                blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
-            end
+            blank_screen(mid_pt(1) - round(obj.center_of_gaze(1, frame)), mid_pt(2) - round(obj.center_of_gaze(2, frame))) = 1;
             imagesc(fliplr(blank_screen))        
         end
 
@@ -253,7 +216,7 @@ classdef EyeTracker < handle
             colormap gray
             axis image
             axis off
-            [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
+            [x, y] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
             candidates = zeros(1, length(temp));
@@ -266,8 +229,18 @@ classdef EyeTracker < handle
         function idx = determineActualPupil(obj, current_pupil, working_pupil)
             %previous pupil positions
             candidates = zeros(1, length(current_pupil));
+            num_prev_frames = length(working_pupil);
+            running_avg = 5;
+            if num_prev_frames > running_avg              %if we have more than 5 frames to work with, take the average centroid as working centroid
+                for ff = 1:running_avg
+                    vals(ff, :) = working_pupil(num_prev_frames-ff).Centroid;       %idk how to vectorize this such that referencing the Centroid fields outputs all 5 values at once
+                end
+                working_centroid = mean(vals, 1);
+            else
+                working_centroid = working_pupil(end).Centroid;     %if not, use the last centroid
+            end
             for ii = 1:length(current_pupil)
-                candidates(ii) = pdist2(current_pupil(ii).Centroid, working_pupil(end).Centroid);
+                candidates(ii) = pdist2(current_pupil(ii).Centroid, working_centroid);
             end
             [~, idx] = min(candidates);
             % additional checks... later
@@ -309,28 +282,14 @@ classdef EyeTracker < handle
             hold off
         end
         
-        function getEyeROI(obj, rotate_flag)
-            if rotate_flag
-                figure
-                imagesc(mean(obj.movie, 3));
-                title('Draw a line along the major axis of the eye...')
-                axis off
-                axis image
-                colormap gray
-                rotation_line = imline;
-                line_pts = rotation_line.getPosition();
-                line_length = pdist(line_pts, 'euclidean');
-                horz_length = line_pts(2, 1) - line_pts(1, 1);
-                offset = acosd(horz_length/line_length);
-                for frame = 1:size(obj.movie, 3)
-                    obj.movie(:, :, frame) = imrotate(obj.movie(:, :, frame), -offset, 'nearest', 'crop');
-                end
-                close
-            end
+        function getEyeROI(obj)
+            fprintf('Choose your bounding box for the mouse eye...\n')
             figure
             imagesc(mean(obj.movie, 3));
-            fprintf('Choose your bounding box for the mouse eye...\n')
-            title('Bounding box for eye...')
+            title('Use mouse to drag a rectangle over the mouse eye')
+            axis off
+            axis image
+            colormap gray
             eye_rectangle = imrect();
             obj.eye_roi = eye_rectangle.createMask();
             close
