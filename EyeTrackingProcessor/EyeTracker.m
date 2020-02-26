@@ -68,7 +68,7 @@ classdef EyeTracker < handle
         	if nargin < 3 || isempty(rotate_flag)
         		rotate_flag = 0;
         	end
-        	
+
         	obj.getEyeROI(method, rotate_flag);
         	x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
         	y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
@@ -111,19 +111,22 @@ classdef EyeTracker < handle
         end
         
         function calibrate(obj)
-        	disp('Choose your calibration image...')
-        	raw_img = imread(uigetfile('.tif'));
-
-            % Match resolution
-            figure;
-            calibration_img = rgb2gray(raw_img(:, :, 1:3)); % Discard alpha
-            calibration_img = imresize(calibration_img, [size(obj.movie, 1), size(obj.movie, 2)]);
-            imagesc(calibration_img);
-            colormap gray
-            calibration_line = imline;
-            distance = pdist(calibration_line.getPosition(), 'euclidean');
-            
-            obj.pix_per_mm = distance / 10; % 10mm per cm
+        	cal_img = questdlg('Do you have a calibration image?', 'Calibration', 'Yes', 'No', 'Yes');
+        	switch cal_img
+        	case 'Yes'
+		       	% Match resolution
+		       	figure;
+	           	calibration_img = rgb2gray(raw_img(:, :, 1:3)); % Discard alpha
+	           	calibration_img = imresize(calibration_img, [size(obj.movie, 1), size(obj.movie, 2)]);
+	           	imagesc(calibration_img);
+	           	colormap gray
+	           	calibration_line = imline;
+	           	distance = pdist(calibration_line.getPosition(), 'euclidean');
+	            obj.pix_per_mm = distance / 10; % 10mm per cm
+	        case 'No'
+	        	warning('No calibration means you shouldn''t really trust the CoG calculation... using a guessed value')
+	        	obj.pix_per_mm = 9.17; 
+	        end
 
             obj.getEyeCtr();
         end

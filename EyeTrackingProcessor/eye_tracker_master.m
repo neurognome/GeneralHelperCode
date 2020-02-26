@@ -20,6 +20,7 @@ eye.cropMovie('Rectangle');     % 'Rectangle' or 'Points' , correct rotation fla
 eye.detectPupil();
 
 
+%% Use these only if you have a calibration image
 eye.calibrate()
 eye.calculateCoG();
 
