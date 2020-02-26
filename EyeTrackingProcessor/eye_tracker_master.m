@@ -14,7 +14,7 @@ eye.readEyeTrackingVideo();
 eye.cleanVideo('interpolate'); % method can be 'interpolate' or 'drop'
 
 % Crop to the eye
-eye.cropMovie('Rectangle');     % 'Rectangle' or 'Points' 
+eye.cropMovie('Rectangle');     % 'Rectangle' or 'Points' , correct rotation flag?
 
 % Detect the pupil
 eye.detectPupil();
@@ -22,6 +22,8 @@ eye.detectPupil();
 
 eye.calibrate()
 eye.calculateCoG();
+
+
 
 % Plot over time to check performance of detection
 eye.checkPerformance(14300:15000)
