@@ -114,6 +114,9 @@ classdef EyeTracker < handle
         	cal_img = questdlg('Do you have a calibration image?', 'Calibration', 'Yes', 'No', 'Yes');
         	switch cal_img
         	case 'Yes'
+        		disp('Choose your calibration image...')
+        		[fn, pn] = uigetfile('*.tif');
+        		raw_img = imread([pn, fn]);
 		       	% Match resolution
 		       	figure;
 	           	calibration_img = rgb2gray(raw_img(:, :, 1:3)); % Discard alpha
