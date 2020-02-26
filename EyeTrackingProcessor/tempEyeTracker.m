@@ -1,4 +1,4 @@
-classdef EyeTracker < handle
+classdef tempEyeTracker < handle
 
     properties (Constant = true)
         EYE_RADIUS = 1.7; % mm
@@ -18,7 +18,7 @@ classdef EyeTracker < handle
     end
     
     methods
-        function obj = EyeTracker()
+        function obj = tempEyeTracker()
         end
         
         function readEyeTrackingVideo(obj)
@@ -253,7 +253,7 @@ classdef EyeTracker < handle
             colormap gray
             axis image
             axis off
-            [y, x] = getpts(); % flipped, not sure if this is right, have Tyler check
+            [x, y] = getpts(); % flipped, not sure if this is right, have Tyler check
             close
             
             candidates = zeros(1, length(temp));

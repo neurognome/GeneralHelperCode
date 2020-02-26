@@ -2,7 +2,7 @@ classdef EyeTracker < handle
 
 	properties (Constant = true)
         EYE_RADIUS = 1.7; % mm
-        STD_THRESH = 1.2;
+        STD_THRESH = 1;
     end
     
     properties
@@ -92,7 +92,7 @@ classdef EyeTracker < handle
             for frame = 1:size(obj.cropped_movie, 3)
             	is_pupil = obj.cropped_movie(:, :, frame) < (min(min(obj.cropped_movie(:, :, frame))) + ...
                     obj.STD_THRESH*uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
-                processed_pupil = bwmorph(is_pupil, 'open'); % clean up the other dark parts
+                processed_pupil = bwmorph(is_pupil, 'close'); % clean up the other dark parts
                 temp = regionprops(processed_pupil,...
                 	'Centroid', 'Orientation', 'BoundingBox', 'MajorAxisLength', 'MinorAxisLength', 'Area', 'Eccentricity');
                 if frame == 1
@@ -293,10 +293,10 @@ classdef EyeTracker < handle
                 candidate_area(ii) = abs(current_pupil(ii).Area - working_area);                        %fourth term: difference between area and working area
             end
             %Weighted sum of all three values to score each candidate
-            a = 0.6;      %distance weight
+            a = 0.7;      %distance weight
             b = 0.1;    %major axis weight
             c = 0.1;   %minor axis weight
-            d = 0.2;    %area weight
+            d = 0.1;    %area weight
             for ii = 1:length(current_pupil)
             	candidate_score(ii) = a*candidate_distance(ii) + b*candidate_majoraxis(ii) + c*candidate_minoraxis(ii) + d*candidate_area(ii);
             end
@@ -458,7 +458,7 @@ classdef EyeTracker < handle
                 title(sprintf('Frame # %d', frame))
                 obj.drawPupilBoundary(frame);
                 %obj.drawMeasurementText(frame);
-                freezeColors();
+                %freezeColors();
                 
                 
                 addpoints(pupil_size_line, frame_ctr, obj.pupil(frame).Area);
@@ -534,7 +534,7 @@ classdef EyeTracker < handle
                 title(sprintf('Frame # %d', frame))
                 obj.drawPupilBoundary(frame);
                 %obj.drawMeasurementText(frame);
-                freezeColors();
+                %freezeColors();
                 
                 subplot(4, 3, [7:8, 10:11]);
                 obj.drawCoG(frame);
