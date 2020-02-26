@@ -2,6 +2,7 @@ classdef EyeTracker < handle
 
     properties (Constant = true)
         EYE_RADIUS = 1.7; % mm
+        STD_THRESH = 1.2;
     end
     
     properties
@@ -57,8 +58,8 @@ classdef EyeTracker < handle
             end
         end
 
-        function cropMovie(obj)
-            obj.getEyeROI();
+        function cropMovie(obj, method)
+            obj.getEyeROI(method);
             x_size = find(sum(obj.eye_roi), 1, 'last') - find(sum(obj.eye_roi), 1, 'first') + 1;
             y_size = find(sum(obj.eye_roi, 2), 1, 'last') - find(sum(obj.eye_roi, 2), 1, 'first') + 1;
 
@@ -74,13 +75,13 @@ classdef EyeTracker < handle
             obj.cropped_movie = movie_roi;
         end
 
-        function detectPupil(obj)
+        function frame = detectPupil(obj)
             %threshold to find pupil
             % this code assumes that the pupil is the darkest.. can make this better later on
             fprintf('Detecting pupil...\n')
             for frame = 1:size(obj.cropped_movie, 3)
                 is_pupil = obj.cropped_movie(:, :, frame) < (min(min(obj.cropped_movie(:, :, frame))) + ...
-                    2*uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
+                    obj.STD_THRESH*uint8(std(std(single(obj.cropped_movie(:, :, frame)))))); % 1SD brighter
                 processed_pupil = bwmorph(is_pupil, 'open'); % clean up the other dark parts
                 temp = regionprops(processed_pupil,...
                     'Centroid', 'Orientation', 'BoundingBox', 'MajorAxisLength', 'MinorAxisLength', 'Area', 'Eccentricity');
@@ -94,7 +95,6 @@ classdef EyeTracker < handle
                         idx = 1;
                     end
                 end
-                
                 pupil(frame) = temp(idx);
             end
             obj.pupil = pupil; % assignment issues if it's directly done above
@@ -228,22 +228,45 @@ classdef EyeTracker < handle
         
         function idx = determineActualPupil(obj, current_pupil, working_pupil)
             %previous pupil positions
-            candidates = zeros(1, length(current_pupil));
+            candidate_distance = zeros(1, length(current_pupil));
+            candidate_majoraxis = zeros(1, length(current_pupil));
+            candidate_minoraxis = zeros(1, length(current_pupil));
+            candidate_area = zeros(1, length(current_pupil));
+
             num_prev_frames = length(working_pupil);
             running_avg = 5;
-            if num_prev_frames > running_avg              %if we have more than 5 frames to work with, take the average centroid as working centroid
+            if num_prev_frames > running_avg              %if we have more than 5 frames to work with, take the averages as working values
                 for ff = 1:running_avg
-                    vals(ff, :) = working_pupil(num_prev_frames-ff).Centroid;       %idk how to vectorize this such that referencing the Centroid fields outputs all 5 values at once
+                    centroid_vals(ff, :) = working_pupil(num_prev_frames-ff).Centroid;       %idk how to vectorize this such that referencing the Centroid fields outputs all 5 values at once
+                    majoraxis_vals(ff) = working_pupil(num_prev_frames-ff).MajorAxisLength;
+                    minoraxis_vals(ff) = working_pupil(num_prev_frames-ff).MinorAxisLength;
+                    area_vals(ff) = working_pupil(num_prev_frames-ff).Area;
                 end
-                working_centroid = mean(vals, 1);
+                working_centroid = mean(centroid_vals, 1);
+                working_majoraxis = mean(majoraxis_vals);
+                working_minoraxis = mean(minoraxis_vals);
+                working_area = mean(area_vals);
             else
-                working_centroid = working_pupil(end).Centroid;     %if not, use the last centroid
+                working_centroid = working_pupil(end).Centroid;     %if not, use the last values
+                working_majoraxis = working_pupil(end).MajorAxisLength;
+                working_minoraxis = working_pupil(end).MinorAxisLength;
+                working_area = working_pupil(end).Area;
             end
             for ii = 1:length(current_pupil)
-                candidates(ii) = pdist2(current_pupil(ii).Centroid, working_centroid);
+                candidate_distance(ii) = pdist2(current_pupil(ii).Centroid, working_centroid);      %first term: distance from centroid candidates to working centroid
+                candidate_majoraxis(ii) = abs(current_pupil(ii).MajorAxisLength - working_majoraxis);    %second term: difference between majoraxis lengths and working majoraxis length
+                candidate_minoraxis(ii) = abs(current_pupil(ii).MinorAxisLength - working_minoraxis);    %third term: difference between minoraxis lengths and working minoraxis length
+                candidate_area(ii) = abs(current_pupil(ii).Area - working_area);                        %fourth term: difference between area and working area
             end
-            [~, idx] = min(candidates);
-            % additional checks... later
+            %Weighted sum of all three values to score each candidate
+            a = 0.6;      %distance weight
+            b = 0.1;    %major axis weight
+            c = 0.1;   %minor axis weight
+            d = 0.2;    %area weight
+            for ii = 1:length(current_pupil)
+                candidate_score(ii) = a*candidate_distance(ii) + b*candidate_majoraxis(ii) + c*candidate_minoraxis(ii) + d*candidate_area(ii);
+            end
+            [~, idx] = min(candidate_score);        %lowest score wins
         end
         
         function drawMeasurementText(obj, frame)
@@ -282,17 +305,42 @@ classdef EyeTracker < handle
             hold off
         end
         
-        function getEyeROI(obj)
-            fprintf('Choose your bounding box for the mouse eye...\n')
-            figure
-            imagesc(mean(obj.movie, 3));
-            title('Use mouse to drag a rectangle over the mouse eye')
-            axis off
-            axis image
-            colormap gray
-            eye_rectangle = imrect();
-            obj.eye_roi = eye_rectangle.createMask();
-            close
+        function getEyeROI(obj, method)
+            switch method
+                case 'Rectangle' 
+                    fprintf('Choose your bounding box for the mouse eye...\n')
+                    figure
+                    imagesc(mean(obj.movie, 3));
+                    title('Use mouse to drag a rectangle over the mouse eye')
+                    axis off
+                    axis image
+                    colormap gray
+                    eye_rectangle = imrect();
+                    obj.eye_roi = eye_rectangle.createMask();
+                    close
+                case 'Points'
+                    fprintf('Select points representing boundaries...\n')
+                    figure
+                    imagesc(mean(obj.movie, 3));
+                    title('Use mouse to select points, press Enter when done')
+                    axis off
+                    axis image
+                    colormap gray
+                    [x, y] = getpts();
+
+                    coords = [floor(x) floor(y)];
+                    leftmost = min(coords(:, 1));
+                    rightmost = max(coords(:, 1));
+                    topmost = min(coords(:, 2));
+                    bottommost = max(coords(:, 2));
+                    x_size = rightmost - leftmost;
+                    y_size = bottommost - topmost;
+                    movie_mask = zeros(size(obj.movie, 1), size(obj.movie, 2));
+                    movie_mask(topmost:topmost+y_size, leftmost:leftmost+x_size) = 1;
+                    obj.eye_roi = logical(movie_mask);
+
+                    close
+            end
         end
 
         function video = checkRawPerformance(obj, frames, playback_speed)

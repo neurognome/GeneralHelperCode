@@ -14,19 +14,21 @@ eye.readEyeTrackingVideo();
 eye.cleanVideo('interpolate'); % method can be 'interpolate' or 'drop'
 
 % Crop to the eye
-eye.cropMovie(1); 
+eye.cropMovie('Rectangle');     % 'Rectangle' or 'Points' 
 
 % Detect the pupil
-eye.detectPupil(); % can input a threshold here if your thing isn't working well...
+eye.detectPupil();
+
 
 eye.calibrate()
 eye.calculateCoG();
 
-
-gaze_map3 = eye.getGazeMap();
-
-%{@
 % Plot over time to check performance of detection
-eye.checkPerformance()
+eye.checkPerformance(14300:15000)
 
-%}
+frames = 1:size(eye.cropped_movie, 3);
+ct = 1;
+for frame = frames
+    pupil_position(ct, :) = eye.pupil(frame).Centroid;
+    ct = ct  + 1;
+end
