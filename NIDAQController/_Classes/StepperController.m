@@ -1,23 +1,22 @@
 classdef StepperController < NIDAQController
 	properties (Constant = true)
-		STEPS_PER_REV = 200;
 		MAX_SPEED = 400;
-	end
+        STEPS_PER_REV = 200;
+    end
 
-	properties
-		motors
-		step_idx
+    properties
+        motors
+        step_idx
 
-		aux_controller
-		clock
-	end
+        aux_controller
+        clock
+    end
 
-	methods
-		function obj = StepperController(motors)
-			obj = obj@NIDAQController();
-			obj.motors = motors;
-			%obj.aux_controller = aux_controller; % I don't like this...
-			obj.clock = Clock();
+    methods
+      function obj = StepperController(motors)
+         obj = obj@NIDAQController();
+         obj.motors = motors;
+         obj.clock = Clock();
 
 			% Add lines
 			ct = 1;
@@ -39,22 +38,28 @@ classdef StepperController < NIDAQController
 
 		function queue(obj, speed, input_type, value)
 			if strcmp(input_type, 'steps') && (length(speed) ~= length(obj.motors) || length(value) ~= length(obj.motors))
-				error('Input the same number of speed/values as motors');
-			end
-
-            % Queue output data, this lets us set up a stimilus trial structure by queueing multiple "phases"
-            obj.checkSpeed(max(speed))
-            for n = 1:length(obj.motors)
-            	switch input_type
-            	case 'steps'
-            		n_steps(n) = value(n) .* obj.aux_controller(n).getMicrostepScale();
-            		duration(n) = obj.getDuration(n_steps(n), speed(n) * obj.aux_controller(n).getMicrostepScale());
-            	case 'seconds'
-            		duration(n) = value;
-            		n_steps = obj.getSteps(duration, speed * obj.aux_controller(n).getMicrostepScale());
-            	end
+				%error('Input the same number of speed/values as motors');
+                value = repmat(value, 1, length(obj.motors));
             end
-            
+
+            norm = min(speed); % idk why we need this right now, but it's to normalize the speeds to get proper scaling
+
+            obj.checkSpeed(max(speed))
+
+            switch input_type
+            case 'steps'
+                for n = 1:length(obj.motors)
+                    n_steps(n) = (value(n) .* obj.aux_controller(n).getMicrostepScale() * speed(n))/norm;
+                end
+                duration = obj.getDuration(n_steps(1), speed(1));
+            case 'seconds'
+                duration = value;
+                for n = 1:length(obj.motors)
+                    n_steps = obj.getSteps(duration, speed(n) * obj.aux_controller(n).getMicrostepScale());
+                end
+            end
+
+
             % When steps are 0, then time is 0, get rid of these errors
             duration(isnan(duration)) = 0;
             duration = max(duration);
@@ -109,7 +114,7 @@ classdef StepperController < NIDAQController
             obj.drive();
         end
 
-        function changeDirection(obj, direction, motor_num)
+        function changeDirection(obj, motor_num, direction)
         	if nargin < 2 || isempty(direction)
         		direction = questdlg('Choose your direction: ', 'Direction', 'cw', 'ccw', 'cw');
         	end
@@ -121,7 +126,7 @@ classdef StepperController < NIDAQController
         	obj.aux_controller(motor_num).setDirection(direction)
         end
 
-        function changeMicrostep(obj, microstep, motor_num)
+        function changeMicrostep(obj, motor_num, microstep)
         	if nargin  < 3 || isempty(motor_num)
         		motor_num = 1;
         	end
@@ -129,6 +134,7 @@ classdef StepperController < NIDAQController
         	obj.aux_controller(motor_num).setMicrostep(microstep);
         end
     end
+
     methods (Access = protected)
     	function checkSpeed(obj, speed)
             % Ensure speed isn't too high
@@ -143,16 +149,14 @@ classdef StepperController < NIDAQController
 
         function duration = getDuration(obj, n_steps, speed) 
             % Convert from n_steps and speed to time (in seconds)
-            %speed = speed .;
-            duration = n_steps .* 1./((speed./ 60) .* obj.STEPS_PER_REV); % nsteps * rotations per second * 1/steps per rotation
+            duration = (n_steps/(obj.STEPS_PER_REV * obj.aux_controller(1).getMicrostepScale())) * (60/speed); % to account for microstepping
         end
 
         function n_steps = getSteps(obj, duration, speed)
             % Convert from speed and duration to number steps
-           % speed = speed .* obj.aux_controller.getMicrostepScale();
-           n_steps = (speed./60) .* duration .* obj.STEPS_PER_REV;
-       end
-   end
+            n_steps = (speed./60) .* duration .* (obj.STEPS_PER_REV * obj.aux_controller(1).getMicrostepScale());
+        end
+    end
 end
 
 
