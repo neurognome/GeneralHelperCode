@@ -26,11 +26,11 @@ classdef TwoPhotonBatchProcessor < handle
             for r = 1:obj.nRecordings
                 cd(obj.pathnames{r})
                 try
-                    currentFilename = subroutine_tifConvert_KS(obj.filenames{r});
+                    currentFilename = subroutine_tifConvert(obj.filenames{r});
                 catch
                     currentFilename = obj.filenames{r};
                 end
-                A_ProcessTimeSeries_KS(currentFilename, 'Yes', 'No', 'No');
+                A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'No');
                 obj.checkAndReport(r)
             end
         end
@@ -67,12 +67,14 @@ classdef TwoPhotonBatchProcessor < handle
             tifFiles = dir('**/*.tif');
             isFirstTif = false(1, length(tifFiles));
             isSingleImage = false(1, length(tifFiles));
+
+            % First check
             for f = 1:length(tifFiles)
                 isFirstTif(f) = contains(tifFiles(f).name, '000001.ome.tif');
                 isSingleImage(f) = contains(tifFiles(f).name, 'SingleImage');
             end
             tifsToProcess = tifFiles(isFirstTif & ~isSingleImage);
-            
+
             for t = 1:length(tifsToProcess)
                 obj.filenames{t} = tifsToProcess(t).name;
                 obj.pathnames{t} = [tifsToProcess(t).folder '\'];

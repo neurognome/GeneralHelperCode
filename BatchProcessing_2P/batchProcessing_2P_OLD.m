@@ -16,7 +16,7 @@ if autorun_flag %& strcmp(batch_type,'A_ProcessTime_Series')
             end
             
             
-            tifs_to_process = tif_files(isFirstTif);
+            tifs_to_process = tif_files; %tif_files(isFirstTif);
             
             
             for ii = 1:length(tifs_to_process);
@@ -74,7 +74,12 @@ for i = 1:num_recordings
     
     switch batch_type
         case 'A_ProcessTimeSeries'
-            A_ProcessTimeSeries(nf{i},'Yes','No','No');
+            try
+                imread(nf{i}, 10); % ensure it's multipage
+                A_ProcessTimeSeries(nf{i},'Yes','No','No');
+            catch
+                fprintf('Skipping %s, not a multipage tif\n', nf{i})
+            end
         case 'C_ExtractDFF'
             try
                 %  C_ExtractDFF_Combined(fn{i},'None','No');

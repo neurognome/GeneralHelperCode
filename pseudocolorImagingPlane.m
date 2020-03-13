@@ -1,9 +1,13 @@
-function pseudocolorImagingPlane(data_structure, metric, map, cmap)
+function pseudocolorImagingPlane(data_structure, metric, map, cmap, choose_vector)
 % This function takes your data structure (generally just called "data"),
 % and some metric (which has a size 1 x cells) then uses that metric to
 % pseudocolor the chosen map
 
 baseAlpha = 0.5; % Base amount of see-through
+
+if nargin < 2 
+    error('Input data structure and metric to color by');
+end
 
 if nargin < 3 || isempty(map)
     map = questdlg('Which map do you want as the base?', 'Base Map', 'Activity Map', 'Average Projection', 'Activity Map');
@@ -11,6 +15,10 @@ end
 
 if nargin < 4 || isempty(cmap)
     cmap = 'parula';
+end
+
+if nargin < 5 || isempty(choose_vector)
+    choose_vector = true(1, size(data_structure.DFF, 1));
 end
 
 switch map
@@ -22,13 +30,14 @@ end
 
 overlayMap = zeros([size(baseMap), 3]);
 transparencyMap = zeros(size(baseMap));
-metric = rescale(metric);
+metric = rescale(metric(choose_vector));
 metric(isnan(metric)) = 0;
 metric = round(metric * 254) + 1;
 
 eval(['colors = ' cmap '(255);']);
 
-cellMasks = data_structure.cellMasks;
+cellMasks = data_structure.cellMasks(choose_vector);
+
 for c = 1:length(cellMasks)
     isCurrCell = poly2mask(cellMasks{c}(:, 1), cellMasks{c}(:, 2), size(overlayMap, 1), size(overlayMap, 2));
     for rgb = 1:3
@@ -46,7 +55,7 @@ transparencyMap = transparencyMap * baseAlpha;
 
 
 %% Display the plots
-image(rescale(baseMap) * 110); % show the average projection,
+image(rescale(baseMap) * 80); % show the average projection,
 %converted to RGB for compatibility
 hold on
 colormap gray
