@@ -44,10 +44,9 @@ classdef TwoPhotonBatchProcessor < handle
             end
             
          %   obj.filenameChecker();
-
             for r = 1:obj.nRecordings
                 cd(obj.pathnames{r})
-                C_ExtractDFF(obj.filenames{r}, 'LocalNeuropil', 'Yes')
+                C_ExtractDFF(obj.filenames{r}, 'Local Neuropil', 'Yes')
                 obj.checkAndReport(r)
             end
         end
@@ -103,7 +102,7 @@ classdef TwoPhotonBatchProcessor < handle
             allMatFiles = allMatFiles(~isAlreadyProcessed);
             for m = 1:length(allMatFiles)
                 obj.filenames{m} = allMatFiles(m).name;
-                obj.filenames{m} = [allMatFiles(m).folder '\'];
+                obj.pathnames{m} = [allMatFiles(m).folder '\'];
             end
             obj.nRecordings = length(allMatFiles);
         end
