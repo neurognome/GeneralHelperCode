@@ -11,7 +11,9 @@ classdef HVAChooserGUI < handle
 		overlay
 		poly
 		roi_struct = struct();
+	end
 
+	properties
 		working = true;
 	end
 
@@ -51,7 +53,7 @@ classdef HVAChooserGUI < handle
     		obj.roi_choices_list = uicontrol('Style', 'popupmenu', 'Units', 'normalized');
     		obj.roi_choices_list.Position = [0.7, 0.75, 0.2, 0.1];
     		obj.roi_choices_list.FontSize = 20;
-    		obj.roi_choices_list.String = {'V1', 'LM', 'PM', 'AL', 'LI', 'RL', 'AM', 'S1', 'VC'};
+    		obj.roi_choices_list.String = {'V1', 'LM', 'PM', 'AL', 'LI', 'RL', 'AM', 'S1', 'VC'}; % change this
 
             % Create status message
             obj.status_msg = uicontrol('Style', 'text', 'Units', 'normalized');
@@ -64,6 +66,10 @@ classdef HVAChooserGUI < handle
             % Main loop
             obj.msg('Draw ROI...')
             obj.update();
+        end
+
+        function out = getFigureHandle(obj)
+        	out = obj.f;
         end
 
         function replotOverlay(obj)

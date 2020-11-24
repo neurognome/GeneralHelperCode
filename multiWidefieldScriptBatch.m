@@ -1,4 +1,4 @@
-
+addpath(genpath('C:\Users\sit\Dropbox\PostProcessing'))
 tic;
 num_recordings = inputdlg('How many recordings you got?','Recording #');
 num_recordings = str2num(num_recordings{1});
@@ -49,10 +49,6 @@ if autorun_flag
     end
     
 else
-
-
-
-    
     for i = 1:num_recordings
         [fn{i},pn{i}] = uigetfile('.tif');
     end

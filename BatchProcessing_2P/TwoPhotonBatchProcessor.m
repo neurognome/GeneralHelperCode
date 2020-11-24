@@ -10,10 +10,12 @@ classdef TwoPhotonBatchProcessor < handle
     
     methods
         function obj = TwoPhotonBatchProcessor(autorunFlag)
+            addpath(genpath('C:\Users\sit\Dropbox\PostProcessing\Goard_Method'))
+            addpath('E:\_TemporaryBetaCode');
             obj.autorunFlag = autorunFlag;
         end
         
-        function run_AProcessTimeSeries(obj)
+        function run_AProcessTimeSeries(obj, movie_flag)
             if obj.autorunFlag
                 obj.autogetTifFilenames()
                 obj.pauseAndCheck()
@@ -22,15 +24,19 @@ classdef TwoPhotonBatchProcessor < handle
             end
             
             obj.filenameChecker();
-            
             for r = 1:obj.nRecordings
                 cd(obj.pathnames{r})
                 try
-                    currentFilename = subroutine_tifConvert(obj.filenames{r});
+                    currentFilename = subroutine_tifConvert_old(obj.filenames{r});
                 catch
                     currentFilename = obj.filenames{r};
                 end
-                A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'No');
+                if movie_flag
+                    warning('Creating movie, don''t forget to change this later')
+                    A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'Yes');
+                else
+                    A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'No');
+                end                
                 obj.checkAndReport(r)
             end
         end
@@ -44,28 +50,29 @@ classdef TwoPhotonBatchProcessor < handle
             end
             
          %   obj.filenameChecker();
-            for r = 1:obj.nRecordings
-                cd(obj.pathnames{r})
-                C_ExtractDFF(obj.filenames{r}, 'Local Neuropil', 'Yes')
-                obj.checkAndReport(r)
-            end
+         for r = 1:obj.nRecordings
+            cd(obj.pathnames{r})
+            C_ExtractDFF(obj.filenames{r}, 'Local Neuropil', 'Yes')
+            obj.checkAndReport(r)
         end
     end
-    
-    methods (Access = private)
-        
-        function [] = filenameChecker(obj)
-            for f = 1:length(obj.filenames)
-                if length(obj.filenames{f}) > 50
-                    error('Something bad happened with the filenames, get this fixed now')
-                end
-            end
-        end
-        
-        function obj = autogetTifFilenames(obj)
-            tifFiles = dir('**/*.tif');
-            isFirstTif = false(1, length(tifFiles));
-            isSingleImage = false(1, length(tifFiles));
+end
+
+methods (Access = private)
+
+    function [] = filenameChecker(obj)
+%             for f = 1:length(obj.filenames)
+%                 if length(obj.filenames{f}) > 50
+%                     keyboard
+%                     error('Something bad happened with the filenames, get this fixed now')
+%                 end
+%             end
+end
+
+function obj = autogetTifFilenames(obj)
+    tifFiles = dir('**/*.tif');
+    isFirstTif = false(1, length(tifFiles));
+    isSingleImage = false(1, length(tifFiles));
 
             % First check
             for f = 1:length(tifFiles)
