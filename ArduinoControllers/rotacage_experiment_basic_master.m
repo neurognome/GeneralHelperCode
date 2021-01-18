@@ -3,18 +3,18 @@
 % COM 4 is the port closer to the screen
 clear
 addpath(genpath('./_Classes'));
-s = ArduinoServoController([], 'COM5', 'D7');
+s = ArduinoServoController([], 'COM4', 'D7');
 
-led = ArduinoLEDController([], 'COM4', {'D7'}); % Pass the arduino pointer into here
+led = ArduinoLEDController([], 'COM5', {'D7'}); % Pass the arduino pointer into here
 
 % start experiment
 
 
 % duration = 20;%25; % minutes
 n_repeats = 1; 
-params = [60, 5]; % seconds on, seconds off
+params = [90, 5]; % seconds on, seconds off
 
-total_duration = sum(params)* 4 * n_repeats; 
+total_duration = sum(params)* 2 * n_repeats; 
 % n_repeats = ceil(duration / (sum(params) * 1/60));
 led.on()
 
@@ -22,7 +22,7 @@ fprintf('Experiment duration: %ds\n', total_duration)
 disp('Press any key to continue...')
 pause
 
-spd = 0.10;
+spd = 0.07;
 for r = 1:n_repeats
     fprintf('Repeat #%d\n', r)
     
@@ -31,14 +31,6 @@ for r = 1:n_repeats
     
     disp('Forward...')
     s.rotate(spd, 'forward') % Default 0.7
-    pause(params(1))
-    
-    disp('Stop...')
-    s.stop()
-    pause(params(2))
-    
-    disp('Backward...')
-    s.rotate(spd+0.1, 'backward')
     pause(params(1))
     
     disp('Stop...')
@@ -55,14 +47,6 @@ for r = 1:n_repeats
     disp('Stop...')
     s.stop()
     pause(params(2))
-    
-    disp('Backward...')
-    s.rotate(spd+0.1, 'backward')
-    pause(params(1))
-    
-    disp('Stop...')
-    s.stop()
-    pause(params(2)) 
 end
 
 disp('Finished!')
