@@ -11,7 +11,7 @@ twop = TwoPhotonBatchProcessor(autorunFlag);
 tic;
 switch batchType
     case 'A_ProcessTimeSeries'
-        twop.run_AProcessTimeSeries(0); % movie flag
+        twop.run_AProcessTimeSeries(false); % movie flag
     case 'C_ExtractDFF'
         twop.run_CExtractDFF();
 end

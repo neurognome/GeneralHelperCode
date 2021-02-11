@@ -102,8 +102,8 @@ function obj = autogetTifFilenames(obj)
             allMatFiles = dir('**/*registered_data.mat');
             isAlreadyProcessed = false(1, length(allMatFiles));
             for m = 1:length(allMatFiles)
-                temp_mat = matfile([allMatFiles(m).folder '\' allMatFiles(m).name]);
-                isAlreadyProcessed(m) = isfield(temp_mat.data,'DFF') & isfield(temp_mat.data,'cellMasks');
+                temp_mat = importdata([allMatFiles(m).folder '\' allMatFiles(m).name]);
+                isAlreadyProcessed(m) = isfield(temp_mat,'DFF') & isfield(temp_mat,'cellMasks');
             end
             
             allMatFiles = allMatFiles(~isAlreadyProcessed);

@@ -34,8 +34,11 @@ metric = rescale(metric(choose_vector));
 metric(isnan(metric)) = 0;
 metric = round(metric * 254) + 1;
 
-eval(['colors = ' cmap '(255);']);
-
+try
+    eval(['colors = ' cmap '(255);']);
+catch
+    colors = cmap;
+end
 cellMasks = data_structure.cellMasks(choose_vector);
 
 for c = 1:length(cellMasks)
@@ -52,7 +55,6 @@ end
 transparencyMap = double(logical(transparencyMap));  % To account for overlap 
 transparencyMap = imgaussfilt(transparencyMap, 2);
 transparencyMap = transparencyMap * baseAlpha;
-
 
 %% Display the plots
 image(rescale(baseMap) * 80); % show the average projection,

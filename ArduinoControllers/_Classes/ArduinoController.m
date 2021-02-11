@@ -16,6 +16,10 @@ classdef ArduinoController < handle
 	        end
         end
         
+        function out = getArduinoPointer(obj)
+            out = obj.arduino_ptr;
+        end
+        
         function pins = inputPins(obj, needed_pins)
             % Sets input pins if not provided
             base_str = 'Input %s pin: ';
