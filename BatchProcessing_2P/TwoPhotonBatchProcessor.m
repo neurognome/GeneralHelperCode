@@ -31,12 +31,12 @@ classdef TwoPhotonBatchProcessor < handle
                 catch
                     currentFilename = obj.filenames{r};
                 end
-                if movie_flag
-                    warning('Creating movie, don''t forget to change this later')
-                    A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'Yes');
-                else
-                    A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'No');
-                end                
+                % if movie_flag
+                %     warning('Creating movie, don''t forget to change this later')
+                %     A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'Yes');
+                % else
+                %     A_ProcessTimeSeries(currentFilename, 'Yes', 'No', 'No');
+                % end                
                 obj.checkAndReport(r)
             end
         end

@@ -18,7 +18,7 @@ classdef ArduinoLEDController < ArduinoController
                 pin = obj.inputPins({'light control'});
             end
             
-            obj.pin = WritePin(pin{1}, obj.arduino_ptr);
+            obj.pin = PWMPin(pin{1}, obj.arduino_ptr);
         end
         
         function on(obj)
@@ -27,7 +27,15 @@ classdef ArduinoLEDController < ArduinoController
         
         function off(obj)
             obj.pin.setValue(0);
-        end  
+        end
+
+        function dim(obj, val)
+            obj.pin.setValue(intensity2duty(val))
+        end
+
+        function duty_cycle = intensity2duty(obj, intensity)
+            duty_cycle = intensity .^ 2;
+        end
 
         function light_switch(obj)
             if obj.pin.getPinValue() == 1
