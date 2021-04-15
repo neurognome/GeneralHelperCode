@@ -4,7 +4,7 @@
 clear
 addpath(genpath('./_Classes'));
 s = ArduinoDCMotorController([], 'COM4');
-s.addMotor(1);
+s.addMotor(2);
 
 led = ArduinoLEDController(s.getArduinoPointer(), [], {'D6'}); % Pass the arduino pointer into here
 
