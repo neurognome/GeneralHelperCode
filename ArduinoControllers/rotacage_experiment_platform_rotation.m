@@ -22,7 +22,8 @@ fprintf('Experiment duration: %ds\n', total_duration)
 disp('Press any key to continue...')
 pause
 
-spd = 0.16;
+% pause(5) % front avg
+spd = -0.16;
 for r = 1:n_repeats
     fprintf('Repeat #%d\n', r)
     

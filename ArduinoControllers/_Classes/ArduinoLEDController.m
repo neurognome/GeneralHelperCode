@@ -22,7 +22,7 @@ classdef ArduinoLEDController < ArduinoController
         end
         
         function on(obj)
-            obj.pin.setValue(1);
+            obj.pin.setValue(0.64);
         end
         
         function off(obj)
@@ -30,7 +30,7 @@ classdef ArduinoLEDController < ArduinoController
         end
 
         function dim(obj, val)
-            obj.pin.setValue(intensity2duty(val))
+            obj.pin.setValue(obj.intensity2duty(val))
         end
 
         function duty_cycle = intensity2duty(obj, intensity)

@@ -3,7 +3,7 @@
 % COM 4 is the port closer to the screen
 clear
 addpath(genpath('./_Classes'));
-s = ArduinoDCMotorController([], 'COM4');
+s = ArduinoDCMotorController([], 'COM3');
 s.addMotor(1);
 
 led = ArduinoLEDController(s.getArduinoPointer(), [], {'D6'}); % Pass the arduino pointer into here
@@ -13,7 +13,7 @@ reader = ArduinoRotationReader('COM4');
 
 
 % duration = 20;%25; % minutes
-n_repeats = 3; 
+n_repeats = 2; 
 params = [120, 5]; % seconds on, seconds off
 
 total_duration = sum(params)* 2 * n_repeats; 
@@ -23,8 +23,9 @@ led.on()
 fprintf('Experiment duration: %ds\n', total_duration)
 disp('Press any key to continue...')
 pause
-
 reader.start();
+
+pause(5) % front avg
 spd = 0.50;
 for r = 1:n_repeats
     fprintf('Repeat #%d\n', r)
@@ -39,9 +40,9 @@ for r = 1:n_repeats
     disp('Stop...')
     s.stop()
     pause(params(2))
-    
-    disp('Light off...')
-    led.off()
+%     
+%     disp('Light off...')
+%     led.off()
     
     disp('Forward...')
     s.rotate(spd) % Default 0.7
@@ -53,5 +54,7 @@ for r = 1:n_repeats
 end
 reader.stop();
 reader.cleanup();
+data = reader.data;
+save('temporary_data.mat', 'data')
 
 disp('Finished!')
