@@ -9,23 +9,29 @@ classdef Pin < handle
     end
     
     methods
-        function obj = Pin(pin_ID, arduino_ptr)
+        function obj = Pin(pin_ID, arduino_ptr, pin_type)
             obj.pin_id = pin_ID;
             obj.arduino_ptr = arduino_ptr;
+            obj.pin_type = pin_type;
             obj.parsePinID(pin_ID);
         end
         
         function parsePinID(obj, pin_ID)
             obj.pin_number = str2double(pin_ID(2));
             switch pin_ID(1)
-                case 'A'
-                    obj.signal_type = 'analog';
-                case 'D'
-                    obj.signal_type = 'digital';
+            case 'A'
+                obj.signal_type = 'analog';
+            case 'D'
+                obj.signal_type = 'digital';
+                switch obj.pin_type
+                case 'write'
                     obj.arduino_ptr.configurePin(obj.pin_id, 'DigitalOutput')
+                case 'read'
+                    obj.arduino_ptr.configurePin(obj.pin_id, 'DigitalInput')
+                end
             end
         end
-        
+
         % Setters and Getters
         function out = getPinID(obj)
             out = obj.pin_id;

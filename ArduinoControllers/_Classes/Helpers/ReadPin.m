@@ -3,11 +3,10 @@ classdef ReadPin < Pin
     end
     methods
         function obj = ReadPin(pin_ID, arduino_ptr)
-            obj = obj@Pin(pin_ID, arduino_ptr);
-            obj.pin_type = 'read';
+            obj = obj@Pin(pin_ID, arduino_ptr, 'read');
         end
         
-        function val = readValue(obj)
+        function val = read(obj)
             % Reads pin value, can work for either
             switch obj.signal_type
                 case 'digital'

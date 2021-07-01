@@ -3,8 +3,7 @@ classdef WritePin < Pin
     end
     methods
         function obj = WritePin(pin_ID, arduino_ptr)
-            obj = obj@Pin(pin_ID, arduino_ptr);
-            obj.pin_type = 'write';
+            obj = obj@Pin(pin_ID, arduino_ptr, 'write');
         end
         
         function obj = setValue(obj, val)

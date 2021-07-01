@@ -7,6 +7,7 @@ s = ArduinoDCMotorController([], 'COM4');
 s.addMotor(1);
 
 led = ArduinoLEDController(s.getArduinoPointer(), [], {'D6'}); % Pass the arduino pointer into here
+reader = ArduinoRotationReader('COM4');
 
 % start experiment
 
@@ -23,6 +24,7 @@ fprintf('Experiment duration: %ds\n', total_duration)
 disp('Press any key to continue...')
 pause
 
+reader.start();
 spd = 0.50;
 for r = 1:n_repeats
     fprintf('Repeat #%d\n', r)
@@ -49,5 +51,7 @@ for r = 1:n_repeats
     s.stop()
     pause(params(2))
 end
+reader.stop();
+reader.cleanup();
 
 disp('Finished!')

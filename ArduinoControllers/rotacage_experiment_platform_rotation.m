@@ -3,13 +3,12 @@
 % COM 4 is the port closer to the screen
 clear
 addpath(genpath('./_Classes'));
-s = ArduinoDCMotorController([], 'COM4');
+s = ArduinoDCMotorController([], 'COM3');
 s.addMotor(2);
 
 led = ArduinoLEDController(s.getArduinoPointer(), [], {'D6'}); % Pass the arduino pointer into here
 
 % start experiment
-
 
 % duration = 20;%25; % minutes
 n_repeats = 3; 
@@ -49,5 +48,6 @@ for r = 1:n_repeats
     s.stop()
     pause(params(2))
 end
+
 
 disp('Finished!')

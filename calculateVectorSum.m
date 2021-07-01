@@ -6,7 +6,7 @@ end
 getHorz = @(v, theta) v .* cos(theta);
 getVert = @(v, theta) v .* sin(theta);
 getAng = @(vert, horz) atan2(vert, horz);
-getMag = @(vert, horz) sqrt(horz ^ 2 + vert ^ 2);
+getMag = @(vert, horz) sqrt(horz .^ 2 + vert .^ 2);
 
 
 h = getHorz(data, theta);
