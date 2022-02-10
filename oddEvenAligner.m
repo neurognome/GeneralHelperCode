@@ -11,8 +11,8 @@ function aligned_responses = oddEvenAligner(trial_responses, reference_idx, alig
 	reference_odd = trial_responses{reference_idx}(:, :, 1:2:end);
 	reference_even = trial_responses{reference_idx}(:, :, 2:2:end);
 
-	[~, odd_idx] = max(mean(reference_odd, 3), [], 2);
-	[~, even_idx] = max(mean(reference_even, 3), [], 2);
+	[~, odd_idx] = max(movmean(mean(reference_odd, 3), 5, 2), [], 2);
+	[~, even_idx] = max(movmean(mean(reference_even, 3), 5, 2), [], 2);
 
 	aligned_responses = cell(1, length(trial_responses));
 	for s = 1:length(trial_responses) % segment
@@ -25,6 +25,7 @@ function aligned_responses = oddEvenAligner(trial_responses, reference_idx, alig
 		end
 
 		% interleave
+		% aligned_responses{s} = odd_aligned;
 		aligned_responses{s}(:, :, 1:2:end) = odd_aligned;
 		aligned_responses{s}(:, :, 2:2:end) = even_aligned;
 	end

@@ -33,7 +33,7 @@ classdef TwoPhotonBatchProcessor < handle
 		function run_AProcessTimeSeries(obj, movie_flag)
 			if obj.autorunFlag
 				obj.autogetTifFilenames(false);
-				obj.checkForMatfiles();
+				% obj.checkForMatfiles();
 				obj.pauseAndCheck();
 			else
 				obj.promptgetFilenames('.tif')
@@ -105,13 +105,27 @@ classdef TwoPhotonBatchProcessor < handle
 			for f = 1:length(tifFiles)
 				isFirstTif(f) = contains(tifFiles(f).name, '000001.ome.tif');
 				isSingleImage(f) = contains(tifFiles(f).name, 'SingleImage');
-				isOther(f) = contains(tifFiles(f).folder, 'Reference') || contains(tifFiles(f).folder, 'MIP');
+                hasRegistered(f) = contains(tifFiles(f).name, '_registered.tif');
+				isOther(f) = contains(tifFiles(f).folder, 'References') || contains(tifFiles(f).folder, 'MIP');
 			end
+            
+            isRegistered = false(1, numel(tifFiles));
+            for r = find(hasRegistered)
+                registered_folder = tifFiles(r).folder;
+                for ii = 1:numel(tifFiles)
+                    if strcmp(tifFiles(ii).folder, registered_folder)
+                        isRegistered(ii) = true;
+                    end
+                end
+            end
+            
+            
 			if first_tif_only
 				tifsToProcess = tifFiles(isFirstTif & ~isSingleImage);
 			else
-				tifsToProcess = tifFiles(~isSingleImage & ~isOther);
-			end
+				tifsToProcess = tifFiles(~isSingleImage & ~isOther & ~isRegistered);
+            end
+            
 			for t = 1:length(tifsToProcess)
 				obj.filenames{t} = tifsToProcess(t).name;
 				obj.pathnames{t} = [tifsToProcess(t).folder '\'];

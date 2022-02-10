@@ -23,5 +23,6 @@ function cmap = colormapMaker(colors, scaling)
             colormap_matrix(:,  (n - 1) * n_colors + 1 : n * n_colors) = cat(1, logspace(colors(n, 1), colors(n+1, 1), n_colors), logspace(colors(n, 2), colors(n+1, 2), n_colors), logspace(colors(n, 3), colors(n+1, 3), n_colors));
         end
     end
-    cmap = rescale(colormap_matrix)';
+    cmap = colormap_matrix';
+%     cmap = rescale(colormap_matrix)';
 end

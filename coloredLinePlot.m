@@ -1,4 +1,4 @@
-function coloredLinePlot(var1, var2, var3)
+function out = coloredLinePlot(var1, var2, var3, linewidth)
 % plots var1 against var2, colored by var3
 
 % Written 12Nov2020 KS
@@ -15,4 +15,8 @@ var3 = [var3(:); NaN];
 
 vector_length = length(var1);
 
-patch(var1, var2, rescale(var3), 'EdgeColor','interp', 'Linewidth', 2);
+c = patch(var1, var2, rescale(var3), 'EdgeColor','interp', 'Linewidth', linewidth);
+
+if nargout > 0
+	out = c;
+end
