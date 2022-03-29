@@ -3,6 +3,10 @@ function out = coloredLinePlot(var1, var2, var3, linewidth)
 
 % Written 12Nov2020 KS
 
+if nargin < 4 || isempty(linewidth)
+	linewidth = 5;
+end
+
 % ensure that the three vectors are the same length
 try 
     cat(1, var1(:), var2(:), var3(:)); % this is dirty af but it'll work
